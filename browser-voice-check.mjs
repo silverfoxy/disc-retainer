@@ -17,12 +17,6 @@ await send('Page.reload',{ignoreCache:true});await new Promise(r=>setTimeout(r,8
 if(await ev('!!document.querySelector("video, input[type=file]:not(#lock-file), a[href*=camera], a[href*=diagnostics]")'))throw Error('Camera/media controls remain');
 for(const path of ['/camera.html','/diagnostics.html','/api/connection','/api/stream']){if((await fetch('http://127.0.0.1:8770'+path)).status!==404)throw Error('Retired route still served: '+path);}
 if(await ev('document.getElementById("mic-input").options.length')!==1)throw Error('Expected privacy-limited initial list');
-await ev('document.getElementById("mic-refresh").click()');await until('!document.getElementById("mic-refresh").disabled');
-const microphoneChoices=await ev('document.getElementById("mic-input").options.length');
-if(microphoneChoices<2)throw Error('Refresh did not enumerate named microphones while capture was active');
-if(await ev('window.__testStream.getTracks().some(track=>track.readyState!=="ended")'))throw Error('Refresh left microphone open');
-await ev('navigator.mediaDevices.dispatchEvent(new Event("devicechange"))');await new Promise(r=>setTimeout(r,150));
-if(await ev('document.getElementById("mic-input").options.length')!==microphoneChoices)throw Error('Microphone choices disappeared after one-time permission ended');
 const before=await ev('document.getElementById("scene").toDataURL()');
 await ev(`document.getElementById('voice-transcript').value='disc 2 2.5 marks until 3.5';document.getElementById('voice-apply').click()`);
 await until('document.querySelector(".gate-card")?.textContent.includes("2.5–3.5 marks")');await new Promise(r=>setTimeout(r,150));
@@ -31,6 +25,8 @@ await ev(`document.getElementById('voice-transcript').value='disc 2 maybe 9';doc
 if(!(await ev('document.querySelector(".gate-card").textContent.includes("2.5–3.5")')))throw Error('Ambiguous speech changed hypothesis');
 await ev('document.getElementById("voice-start").click()');
 await until('!!window.__testCapture?.port.onmessage');
+if(await ev('document.getElementById("voice-start").textContent')!=='Stop listening')throw Error('Start did not become Stop');
+await until('document.getElementById("mic-input").options.length>1');
 await ev(`for(let i=0;i<20;i++)window.__testCapture.port.onmessage({data:new Float32Array(1024).fill(.05)});for(let i=0;i<5;i++)window.__testCapture.port.onmessage({data:new Float32Array(1024)});`);
 if(await ev('document.querySelectorAll(".gate-card").length')!==1)throw Error('Incomplete utterance committed before silence');
 if(await ev('document.getElementById("voice-phase").dataset.phase')!=='hearing')throw Error('Hearing state not visible');
@@ -46,7 +42,7 @@ await new Promise(r=>setTimeout(r,250));
 if(await ev('JSON.parse(localStorage.getItem("disc-studio-voice-v1")).events.length')!==2)throw Error('Canonical repeat created duplicate event');
 if(!(await ev('document.getElementById("command-status").textContent.includes("no duplicate")')))throw Error('Duplicate acknowledgement missing');
 
-await ev('document.getElementById("voice-stop").click();document.getElementById("voice-undo").click()');
+await ev('document.getElementById("voice-start").click();document.getElementById("voice-undo").click()');
 await until('document.querySelectorAll(".gate-card").length===1');
 if(await ev('window.__testStream?.getTracks().some(track=>track.readyState!=="ended")'))throw Error('Stop left microphone open');
 await ev('document.querySelector(".gate-card button").click()');await until('!document.querySelector(".gate-card")');
@@ -60,16 +56,13 @@ const box=await ev('(()=>{const b=document.getElementById("scene").getBoundingCl
 await send('Input.dispatchMouseEvent',{type:'mousePressed',x:box.x,y:box.y,button:'left',clickCount:1});
 await send('Input.dispatchMouseEvent',{type:'mouseMoved',x:box.x,y:box.y-60,button:'left',buttons:1});
 await send('Input.dispatchMouseEvent',{type:'mouseReleased',x:box.x,y:box.y-60,button:'left',clickCount:1});await new Promise(r=>setTimeout(r,150));
-const followsPointer=await ev(`(async()=>{const {drawDiscScene}=await import('./scene3d.mjs');const {stateAt}=await import('./model.mjs');const {gateHypothesesAt,gateAlignmentDegrees}=await import('./voice-commands.mjs');const s=JSON.parse(localStorage.getItem('disc-studio-voice-v1')),state=stateAt([],0,s.config);state.gateHypotheses=gateHypothesesAt(s.events,Infinity,s.config.discCount);state.pickAngleDeg=gateAlignmentDegrees(state.gateHypotheses[1],s.config.sidebarAngleDeg);const live=document.getElementById('scene'),c=document.createElement('canvas');c.width=live.width;c.height=live.height;drawDiscScene(c.getContext('2d'),c.width,c.height,s.config,state,{yaw:-.85,pitch:.38+.48,zoom:1,exploded:true,axialScale:2,showSidebar:true,illustrativeNotches:true,showHousing:true,showDriveTabs:true,alignHypotheses:true,fromTop:true,showPick:true,pickScale:3,rectangularKeyway:true,voiceOnly:true,lightTheme:true,sketch:true});return c.toDataURL()===live.toDataURL();})()`);
+const followsPointer=await ev(`(async()=>{const {drawDiscScene}=await import('./scene3d.mjs');const {stateAt}=await import('./model.mjs');const {gateHypothesesAt,gateAlignmentDegrees}=await import('./voice-commands.mjs');const s=JSON.parse(localStorage.getItem('disc-studio-voice-v1')),state=stateAt([],0,s.config);state.gateHypotheses=gateHypothesesAt(s.events,Infinity,s.config.discCount);state.pickAngleDeg=gateAlignmentDegrees(state.gateHypotheses[1],s.config.sidebarAngleDeg);const live=document.getElementById('scene'),c=document.createElement('canvas');c.width=live.width;c.height=live.height;drawDiscScene(c.getContext('2d'),c.width,c.height,s.config,state,{yaw:-.85,pitch:.38+.48,zoom:1,fitToViewport:true,exploded:true,axialScale:2,showSidebar:true,illustrativeNotches:true,showHousing:true,showDriveTabs:true,alignHypotheses:true,fromTop:true,showPick:true,pickScale:3,rectangularKeyway:true,voiceOnly:true,lightTheme:true,sketch:true});return c.toDataURL()===live.toDataURL();})()`);
 if(!followsPointer)throw Error('Upward drag did not render expected geometry-following orientation');
 await ev(`document.getElementById('disc-count').value=2;document.getElementById('disc-count').dispatchEvent(new Event('change'))`);
 await until('document.getElementById("alignment-status").textContent.includes("sidebar lowered")');
 await ev('document.querySelector(".gate-card button").click()');
 await until('document.getElementById("alignment-status").textContent.includes("bar stays raised")');
-await ev('document.getElementById("mic-check").click()');
-await until('!document.getElementById("mic-check").disabled');
-if(await ev('window.__testStream.getTracks().some(track=>track.readyState!=="ended")'))throw Error('Microphone check left audio device open');
-if(!(await ev('document.getElementById("mic-status").textContent.includes("Audio detected")||document.getElementById("mic-status").textContent.includes("little or no audio")')))throw Error('Microphone check did not report capture result');
+if(await ev('document.getElementById("voice-start").textContent')!=='Start listening')throw Error('Voice button did not reset');
 await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:true}).then(shot=>fs.writeFile('/tmp/disc-voice-simple.png',Buffer.from(shot.data,'base64')));
 await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});await new Promise(r=>setTimeout(r,200));if(await ev('document.documentElement.scrollWidth>innerWidth+1'))throw Error('Mobile overflow');
 await send('Page.removeScriptToEvaluateOnNewDocument',{identifier:injection.identifier});

@@ -21,8 +21,13 @@ and midpoint alignment do not establish that a physical lock is open.
 Run `node server.mjs` and open <http://127.0.0.1:8770>.
 The model, manual controls, notebook storage and exports work without Python.
 Local voice recognition additionally requires the local Whisper setup described
-below. The browser requests microphone access only after Start listening or Check
-microphone is selected.
+below. The browser requests microphone access only after Start listening is selected.
+The same button becomes Stop listening; microphone choices refresh automatically.
+On phones, voice appears before manual input and both panels scroll normally.
+The model automatically fills its canvas, with a closer starting angle on phones.
+While visible, the page requests a screen wake lock and shows its status. It retries
+on return or a tap if the browser releases it; unsupported browsers and battery
+saving settings may prevent keeping the display awake.
 
 ## Controls
 

@@ -6,6 +6,7 @@ async function ev(expression){const r=await send('Runtime.evaluate',{expression,
 async function until(expression){for(let i=0;i<60;i++){if(await ev(expression))return;await new Promise(r=>setTimeout(r,150));}throw Error('Timed out: '+expression+' status '+await ev('document.getElementById("voice-status").textContent'));}
 async function file(selector,path){const doc=await send('DOM.getDocument');const node=await send('DOM.querySelector',{nodeId:doc.root.nodeId,selector});await send('DOM.setFileInputFiles',{nodeId:node.nodeId,files:[path]});}
 await send('Runtime.enable');await send('Page.enable');await send('Network.enable');await send('Network.setCacheDisabled',{cacheDisabled:true});
+await send('Page.addScriptToEvaluateOnNewDocument',{source:`window.__wakeCalls=0;window.__wakeDeny=false;Object.defineProperty(navigator,'wakeLock',{value:{request:async()=>{window.__wakeCalls++;if(window.__wakeDeny)throw Error('Battery saver');const lock=new EventTarget();lock.release=async()=>lock.dispatchEvent(new Event('release'));window.__wakeSentinel=lock;return lock;}}});`});
 await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
 await send('Emulation.setTouchEmulationEnabled',{enabled:true});
 await send('Page.navigate',{url:'http://127.0.0.1:8770'});await until('!!document.getElementById("touch-save")');
@@ -17,7 +18,7 @@ const savedPanels=await ev('localStorage.getItem("disc-studio-panels-v1")');
 await ev('localStorage.removeItem("disc-studio-panels-v1")');
 await ev('localStorage.removeItem("disc-studio-voice-v1");localStorage.removeItem("disc-studio-v1")');
 await send('Page.reload',{ignoreCache:true});await until('document.getElementById("touch-disc")?.options.length===8');
-async function tap(id){const rect=await ev(`(()=>{const r=document.getElementById(${JSON.stringify(id)}).getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()`);await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[rect]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
+async function tap(id){await ev(`document.getElementById(${JSON.stringify(id)}).scrollIntoView({block:"center",behavior:"instant"})`);await new Promise(r=>setTimeout(r,200));const rect=await ev(`(()=>{const r=document.getElementById(${JSON.stringify(id)}).getBoundingClientRect();return {x:r.x+r.width/2,y:r.y+r.height/2};})()`);await send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[rect]});await send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});}
 await tap('touch-disc-next');await until('document.getElementById("touch-disc").value==="3"');
 for(let i=0;i<4;i++)await tap('touch-start-plus');
 await tap('touch-end-plus');
@@ -71,9 +72,24 @@ await until('document.getElementById("touch-content")?.hidden&&document.getEleme
 await tap('touch-toggle');
 await ev('document.getElementById("voice-toggle").click()');
 await until('!document.getElementById("touch-content").hidden&&!document.getElementById("voice-content").hidden');
+await until('document.getElementById("wake-status").textContent.includes("Screen stays awake")');
+await ev('window.__wakeDeny=true;window.__wakeSentinel.release();document.dispatchEvent(new Event("pointerdown"))');
+await until('document.getElementById("wake-status").textContent.includes("unavailable")');
+await ev('window.__wakeDeny=false;document.dispatchEvent(new Event("visibilitychange"))');
+await until('document.getElementById("wake-status").textContent.includes("Screen stays awake")');
+if(await ev('window.__wakeCalls')!==3)throw Error('Wake lock retry did not run');
+for(const width of [320,390,844]){
+ await send('Emulation.setDeviceMetricsOverride',{width,height:844,deviceScaleFactor:1,mobile:true});
+ await ev('document.getElementById("voice-start").scrollIntoView({block:"center"})');
+ const accessible=await ev('(()=>{const b=document.getElementById("voice-start"),r=b.getBoundingClientRect();return document.documentElement.scrollWidth<=innerWidth&&r.left>=0&&r.right<=innerWidth&&document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)===b;})()');
+ if(!accessible)throw Error('Voice button obstructed at width '+width);
+}
+await send('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
 await ev('window.scrollTo(0,0)');
+if(await ev('getComputedStyle(document.querySelector(".touch-panel")).position')==='fixed')throw Error('Manual panel overlays the page');
+if(await ev('document.querySelectorAll("#voice-stop,#mic-check,#mic-refresh").length'))throw Error('Redundant voice controls remain');
 const layout=await ev(`(()=>{const panel=document.querySelector('.touch-panel').getBoundingClientRect();return {overflow:document.documentElement.scrollWidth>innerWidth,panelTop:panel.top,panelBottom:panel.bottom,height:innerHeight,background:getComputedStyle(document.body).backgroundColor,scheme:getComputedStyle(document.documentElement).colorScheme,targets:[...document.querySelectorAll('.touch-panel button,.touch-row input,.touch-row select')].every(el=>el.getBoundingClientRect().height>=48)};})()`);
-if(layout.overflow||layout.panelTop<0||layout.panelBottom>layout.height+1||!layout.targets||layout.scheme!=='light')throw Error('Mobile layout failed '+JSON.stringify(layout));
+if(layout.overflow||layout.panelBottom<=layout.panelTop||!layout.targets||layout.scheme!=='light')throw Error('Mobile layout failed '+JSON.stringify(layout));
 await new Promise(r=>setTimeout(r,850));
 await send('Page.captureScreenshot',{format:'png',captureBeyondViewport:false}).then(shot=>fs.writeFile('/tmp/disc-touch-mobile.png',Buffer.from(shot.data,'base64')));
 await send('Emulation.setDeviceMetricsOverride',{width:1280,height:1000,deviceScaleFactor:1,mobile:false});

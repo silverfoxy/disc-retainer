@@ -158,8 +158,18 @@ export function buildDiscScene(config,state,{exploded=true,axialScale=2,showSide
 }
 export function drawDiscScene(ctx,w,h,config,state,view){
  const scene=buildDiscScene(config,state,view),{yaw,pitch,zoom}=view;
- ctx.clearRect(0,0,w,h);const scale=Math.min(w/(scene.extent+scene.R*2+(view.showPick?220:90)),h/(scene.R*2+95+Math.abs((scene.extent+(view.showPick?110:0))*Math.sin(yaw)*Math.sin(pitch))*1.2))*zoom,focal=(scene.extent+scene.R*4+100)*2.5;
- const project=point=>{const [x,y,z]=point,X=x*Math.cos(yaw)+z*Math.sin(yaw),Z=-x*Math.sin(yaw)+z*Math.cos(yaw),Y=y*Math.cos(pitch)-Z*Math.sin(pitch),depth=Z*Math.cos(pitch)+y*Math.sin(pitch),perspective=focal/(focal-depth);return [w/2+X*scale*perspective,h/2+Y*scale*perspective,depth];};
+ ctx.clearRect(0,0,w,h);
+ let scale=Math.min(w/(scene.extent+scene.R*2+(view.showPick?220:90)),h/(scene.R*2+95+Math.abs((scene.extent+(view.showPick?110:0))*Math.sin(yaw)*Math.sin(pitch))*1.2))*zoom;
+ const focal=(scene.extent+scene.R*4+100)*2.5;
+ const camera=point=>{const [x,y,z]=point,X=x*Math.cos(yaw)+z*Math.sin(yaw),Z=-x*Math.sin(yaw)+z*Math.cos(yaw),Y=y*Math.cos(pitch)-Z*Math.sin(pitch),depth=Z*Math.cos(pitch)+y*Math.sin(pitch),perspective=focal/(focal-depth);return [X*perspective,Y*perspective,depth];};
+ let centerX=0,centerY=0;
+ if(view.fitToViewport){
+  let left=Infinity,right=-Infinity,top=Infinity,bottom=-Infinity;
+  for(const face of scene.faces)for(const point of face.points){const [x,y]=camera(point);left=Math.min(left,x);right=Math.max(right,x);top=Math.min(top,y);bottom=Math.max(bottom,y);}
+  scale=Math.min((w-32)/(right-left),(h-84)/(bottom-top))*zoom;
+  centerX=(left+right)/2;centerY=(top+bottom)/2;
+ }
+ const project=point=>{const [x,y,depth]=camera(point);return [w/2+(x-centerX)*scale,h/2+(view.fitToViewport?8:0)+(y-centerY)*scale,depth];};
  const light=[.36,-.48,.8];
  // Long faces cannot be depth-sorted reliably by a single center point.
  // Subdivide the straight sidebar along the axis, including every disc face,

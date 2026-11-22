@@ -9,7 +9,7 @@ await writeFile(new URL('_headers',output),`/*
   Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: same-origin
-  Permissions-Policy: microphone=(self), camera=()
+  Permissions-Policy: microphone=(self), camera=(), screen-wake-lock=(self)
   Cache-Control: public, max-age=0, must-revalidate
 `);
 console.log(`Built ${assets.length} browser assets in .public/`);

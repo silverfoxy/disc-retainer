@@ -2,6 +2,7 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Disc Retainer: Visualize and save gate locations.</title><link rel="stylesheet" href="style.css"><script type="module" src="app.mjs"></script></head>
 <body><main>
 <header><div><p class="eyebrow">DISC RETAINER</p><h1>Visualize and save gate locations.</h1></div><label for="disc-count">Discs <input id="disc-count" type="number" min="2" max="30" step="1" value="8"></label></header>
+<p id="wake-status" class="help wake-status" role="status">Keeping the screen awake when supported.</p>
 <section class="panel lock-panel" aria-labelledby="lock-title">
 <div class="panel-head"><h2 id="lock-title">Lock notebooks</h2><span id="lock-summary">Unsaved lock</span><button id="lock-toggle" class="panel-toggle" aria-expanded="false" aria-controls="lock-content" aria-label="Expand lock notebooks">Expand</button></div>
 <div id="lock-content" hidden>
@@ -23,12 +24,12 @@
 <p class="help touch-help">Keyboard: F / T selects false / true · Space moves fields · arrows adjust · Enter saves. Tab or type exact readings. Disc 1 is editable; end above 8 crosses zero.</p>
 </div>
 </section>
-<section class="panel voice-panel" aria-labelledby="voice-title"><div class="panel-head"><h2 id="voice-title">Voice notebook</h2><span id="voice-summary" role="status">Stopped</span><button id="voice-toggle" class="panel-toggle" aria-expanded="true" aria-controls="voice-content" aria-label="Minimize voice notebook">Minimize</button></div>
+<section class="panel voice-panel" aria-labelledby="voice-title"><div class="panel-head"><h2 id="voice-title">Voice notebook</h2><span id="voice-summary" role="status">Stopped</span><button id="voice-start" class="primary" aria-pressed="false">Start listening</button><button id="voice-toggle" class="panel-toggle" aria-expanded="true" aria-controls="voice-content" aria-label="Minimize voice notebook">Minimize</button></div>
 <div id="voice-content">
 <p>Say <strong>“disc 2, 2.5 marks until 3.5”</strong> to mark a suspected gate range, or <strong>“disc 2, false gate at 4”</strong>, or say <strong>“reset disc 2”</strong> or <strong>“reset all discs.”</strong></p>
-<div class="voice-controls"><button id="voice-start" class="primary">Start listening</button><button id="voice-stop" disabled>Stop listening</button><button id="mic-check">Check microphone</button><button id="mic-refresh">Refresh microphones</button><label class="sr-only" for="mic-input">Microphone input</label><select id="mic-input" aria-label="Microphone input"><option value="">System default microphone</option></select><button id="voice-undo">Undo last entry</button></div>
+<div class="voice-controls"><label class="sr-only" for="mic-input">Microphone input</label><select id="mic-input" aria-label="Microphone input"><option value="">System default microphone</option></select><button id="voice-undo">Undo last entry</button></div>
 <p id="mic-devices-status" class="help" role="status"></p>
-<p id="mic-status" class="help" role="status"></p>
+
 <div class="mic-level"><meter id="mic-level" min="0" max="100" value="0" aria-label="Microphone input level"></meter><span id="mic-level-text">Microphone stopped</span></div>
 <div id="voice-phase" class="voice-phase" data-phase="stopped" role="status" aria-live="polite">Stopped</div>
 <p id="voice-status" role="status" aria-live="polite">Not listening.</p>

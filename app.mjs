@@ -1,4 +1,4 @@
-import {LocalSpeech,checkLocalMicrophone} from './local-speech.mjs';
+import {LocalSpeech} from './local-speech.mjs';
 import {drawDiscScene,sidebarSeatInset} from './scene3d.mjs';
 import {parseGateCommand,gateHypothesesAt,gateAlignmentDegrees,withTensionedFirstDisc,gateCommandAlreadyApplied,falseGatesAt,createPickingSequence,pickingSequenceAt,gateEntryOrder,gateTableCsv} from './voice-commands.mjs';
 import {DEFAULT_CONFIG,validateConfig,emptyGeometry,validateSession,clamp,stateAt} from './model.mjs';
@@ -11,7 +11,7 @@ try{
 }catch{$('voice-status').textContent='Could not restore saved entries. New entries can still be added.';}
 $('disc-count').value=session.config.discCount;
 let sequence=0;
-let yaw=-.85,pitch=.38,zoom=1,drag=null;
+let yaw=matchMedia('(max-width: 600px)').matches?-1.05:-.85,pitch=.38,zoom=1,drag=null;
 let activeDisc=Math.max(0,(session.events.findLast(e=>e.type==='gate_hypothesis')?.disc??2)-1),tipMotion={from:1,to:1,start:0,current:1};
 const undoIds=[];
 const libraryKey='disc-studio-locks-v1';let locks=[],activeLockId=null;
@@ -215,7 +215,7 @@ window.addEventListener('keydown',event=>{
  if(event.key==='Enter'){consume();$('touch-save').click();}
 },{capture:true});
 function stopVoice(){speech.stop();voiceStatus('Not listening.');}
-const speech=new LocalSpeech({onStatus:voiceStatus,onState:phase=>{const labels={stopped:'Stopped',preparing:'Preparing microphone…',listening:'Listening · speak now',hearing:'Hearing you · pause when finished',transcribing:'Transcribing · please wait'};$('voice-phase').textContent=labels[phase]||phase;$('voice-summary').textContent=labels[phase]||phase;$('voice-phase').dataset.phase=phase;},onLevel:({rms,speechActive,pending})=>{const db=rms>0?Math.max(-90,Math.round(20*Math.log10(rms))):-90;$('mic-level').value=clamp((db+80)/60*100,0,100);$('mic-level-text').textContent=`Input ${db} dB · ${pending?'transcribing':speechActive?'speech detected':db< -55?'very quiet input':'waiting for speech'}`;},onTranscript:text=>{$('voice-transcript').value=text;applyCommand(text);},onEnd:()=>{$('mic-level').value=0;$('mic-level-text').textContent='Microphone stopped';$('voice-start').disabled=false;$('voice-stop').disabled=true;$('mic-input').disabled=false;}});
+const speech=new LocalSpeech({onStatus:voiceStatus,onState:phase=>{const labels={stopped:'Stopped',preparing:'Preparing microphone…',listening:'Listening · speak now',hearing:'Hearing you · pause when finished',transcribing:'Transcribing · please wait'};$('voice-phase').textContent=labels[phase]||phase;$('voice-summary').textContent=labels[phase]||phase;$('voice-phase').dataset.phase=phase;},onLevel:({rms,speechActive,pending})=>{const db=rms>0?Math.max(-90,Math.round(20*Math.log10(rms))):-90;$('mic-level').value=clamp((db+80)/60*100,0,100);$('mic-level-text').textContent=`Input ${db} dB · ${pending?'transcribing':speechActive?'speech detected':db< -55?'very quiet input':'waiting for speech'}`;},onTranscript:text=>{$('voice-transcript').value=text;applyCommand(text);},onEnd:()=>{$('mic-level').value=0;$('mic-level-text').textContent='Microphone stopped';$('voice-start').textContent='Start listening';$('voice-start').setAttribute('aria-pressed','false');$('mic-input').disabled=false;}});
 const knownMicrophones=new Map();let inputRefresh=0;
 async function refreshInputs(activeStream=null){
  if(!navigator.mediaDevices?.enumerateDevices){$('mic-devices-status').textContent='This browser cannot list microphones. System default is still available.';return;}
@@ -240,22 +240,11 @@ async function refreshInputs(activeStream=null){
   for(const [id,label] of knownMicrophones)if(id!=='default')options.push(new Option(label,id));
   const defaultDevice=inputs.find(device=>device.deviceId==='default');if(defaultDevice?.label)options[0].textContent=defaultDevice.label;
   $('mic-input').replaceChildren(...options);if(options.some(option=>option.value===selected))$('mic-input').value=selected;
-  $('mic-devices-status').textContent=nativeInputs.length?'Direct local inputs work even when the browser cannot find a microphone. Choose one, then start listening.':options.length>1?'Choose an input, then start listening.':track?'The browser exposes only its current/default input. You can use it, or choose another input in the browser’s site microphone settings.':'Click Refresh microphones and allow microphone access to reveal available inputs.';
- }catch(error){$('mic-devices-status').textContent=`Microphone list unavailable (${error.name}). Click Refresh microphones to request access; System default remains available.`;}
+  $('mic-devices-status').textContent=nativeInputs.length?'Direct local inputs work even when the browser cannot find a microphone. Choose one, then start listening.':options.length>1?'Choose an input, then start listening.':track?'The browser exposes only its current/default input. You can use it, or choose another input in the browser’s site microphone settings.':'Start listening to allow microphone access and reveal available inputs.';
+ }catch(error){$('mic-devices-status').textContent=`Microphone list unavailable (${error.name}). Start listening to request access; System default remains available.`;}
 }
-$('mic-refresh').addEventListener('click',async()=>{
- $('mic-refresh').disabled=true;let temporary;
- try{
-  await refreshInputs(speech.stream||micStream);
-  if([...$('mic-input').options].some(option=>option.value.startsWith('native:')))return;
-  const active=speech.stream||micStream;
-  if(active)await refreshInputs(active);
-  else{temporary=await navigator.mediaDevices.getUserMedia({audio:true,video:false});await refreshInputs(temporary);}
- }catch(error){$('mic-devices-status').textContent=`Microphone access failed (${error.name}): ${error.message}. ${error.name==='NotFoundError'?'The browser cannot see an audio input; select a direct local input if available.':'Allow microphone access for this site, then retry.'}`;}
- finally{temporary?.getTracks().forEach(track=>track.stop());$('mic-refresh').disabled=false;}
-});
 $('mic-input').addEventListener('change',()=>{try{localStorage.setItem('disc-studio-microphone',$('mic-input').value);}catch{}});
-navigator.mediaDevices?.addEventListener('devicechange',()=>refreshInputs(speech.stream||micStream));
+navigator.mediaDevices?.addEventListener('devicechange',()=>refreshInputs(speech.stream));
 refreshInputs();
 $('voice-apply').addEventListener('click',()=>applyCommand($('voice-transcript').value));
 $('voice-transcript').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();applyCommand(event.target.value);}});
@@ -269,34 +258,11 @@ $('disc-count').addEventListener('change',()=>{
  try{const config=validateConfig({...session.config,discCount:count,discGeometry:Array.from({length:count},emptyGeometry)});session.config=config;sequence++;renderNotebook();persist();}
  catch(error){$('disc-count').value=session.config.discCount;voiceStatus(error.message);}
 });
-$('voice-stop').addEventListener('click',stopVoice);
 $('voice-start').addEventListener('click',async()=>{
- $('voice-start').disabled=true;$('voice-stop').disabled=false;$('mic-input').disabled=true;
+ if(speech.running){stopVoice();return;}
+ $('voice-start').textContent='Stop listening';$('voice-start').setAttribute('aria-pressed','true');$('mic-input').disabled=true;
  await speech.start($('mic-input').value);await refreshInputs(speech.stream);
 });
-let micStream=null;
-$('mic-check').addEventListener('click',async()=>{
- stopVoice();$('mic-check').disabled=true;$('voice-start').disabled=true;let context;
- try{
-  if($('mic-input').value.startsWith('native:')){const status=await checkLocalMicrophone($('mic-input').value.slice(7),text=>$('mic-status').textContent=text);$('mic-status').textContent=status.peak>.008?`Audio detected from ${status.label}. Direct local microphone capture works.`:`Opened ${status.label} directly, but little or no audio was detected. Check microphone gain and hardware mute.`;return;}
-  if(!navigator.mediaDevices?.getUserMedia)throw Error('Microphone access is unavailable in this browser.');
-  $('mic-status').textContent='Requesting microphone access…';
-  micStream=await navigator.mediaDevices.getUserMedia({audio:$('mic-input').value?{deviceId:{exact:$('mic-input').value}}:true,video:false});
-  await refreshInputs(micStream);
-  const track=micStream.getAudioTracks()[0],name=track.label||'default microphone';
-  const AudioContext=window.AudioContext||window.webkitAudioContext;context=new AudioContext();await context.resume();
-  const analyser=context.createAnalyser();analyser.fftSize=2048;context.createMediaStreamSource(micStream).connect(analyser);
-  const samples=new Float32Array(analyser.fftSize);let peak=0;
-  for(let i=0;i<50;i++){
-   analyser.getFloatTimeDomainData(samples);const rms=Math.sqrt(samples.reduce((sum,x)=>sum+x*x,0)/samples.length);peak=Math.max(peak,rms);
-   $('mic-status').textContent=`Testing ${name}: input level ${Math.min(100,Math.round(rms*500))}% · speak now (${Math.ceil((50-i)/10)}s).`;
-   await new Promise(resolve=>setTimeout(resolve,100));
-  }
-  $('mic-status').textContent=peak>.008?`Audio detected from ${name}. Microphone capture works. Start listening enables speech recognition.`:`Microphone opened: ${name}, but little or no audio was detected. Check mute/gain and choose the intended input in your browser or system sound settings.`;
- }catch(error){$('mic-status').textContent=error.name==='NotFoundError'?'The browser cannot find a microphone. Check site permissions and connect an audio input.':`Microphone check failed (${error.name}): ${error.message}`;}
- finally{micStream?.getTracks().forEach(track=>track.stop());micStream=null;await context?.close();$('mic-check').disabled=false;$('voice-start').disabled=false;}
-});
-window.addEventListener('pagehide',()=>micStream?.getTracks().forEach(track=>track.stop()));
 window.addEventListener('pagehide',stopVoice);
 scene.addEventListener('pointerdown',event=>{drag={x:event.clientX,y:event.clientY};scene.setPointerCapture(event.pointerId);});
 scene.addEventListener('pointermove',event=>{if(!drag)return;yaw+=(event.clientX-drag.x)*.008;pitch=clamp(pitch-(event.clientY-drag.y)*.008,-1.2,1.2);drag={x:event.clientX,y:event.clientY};});
@@ -351,7 +317,7 @@ function frame(now){
  const box=scene.getBoundingClientRect(),dpr=window.devicePixelRatio||1,w=Math.max(1,Math.round(box.width*dpr)),h=Math.max(1,Math.round(box.height*dpr));
  if(scene.width!==w||scene.height!==h){scene.width=w;scene.height=h;}
  const ctx=scene.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
- drawDiscScene(ctx,box.width,box.height,session.config,state,{yaw,pitch,zoom,exploded:true,axialScale:2,showSidebar:true,illustrativeNotches:true,showHousing:true,showDriveTabs:true,alignHypotheses:true,fromTop:true,showPick:true,pickScale:3,rectangularKeyway:true,voiceOnly:true,lightTheme:true,sketch:true});requestAnimationFrame(frame);
+ drawDiscScene(ctx,box.width,box.height,session.config,state,{yaw,pitch,zoom,fitToViewport:true,exploded:true,axialScale:2,showSidebar:true,illustrativeNotches:true,showHousing:true,showDriveTabs:true,alignHypotheses:true,fromTop:true,showPick:true,pickScale:3,rectangularKeyway:true,voiceOnly:true,lightTheme:true,sketch:true});requestAnimationFrame(frame);
 }
 // Collapsing a panel only hides its controls; drafts and voice capture stay intact.
 let panelPreferences={};
@@ -369,5 +335,24 @@ for(const [name,label] of [['touch','manual input'],['voice','voice notebook'],[
   try{localStorage.setItem('disc-studio-panels-v1',JSON.stringify(panelPreferences));}catch{}
  });
 }
-new ResizeObserver(entries=>document.documentElement.style.setProperty('--touch-panel-height',`${entries[0].target.getBoundingClientRect().height}px`)).observe(document.querySelector('.touch-panel'));
+// Hold the screen awake while this notebook is visible. Retry on return or a tap
+// because browsers may release the lock when hidden or while saving battery.
+let wakeLock=null,wakePending=false,pageActive=true;
+async function keepScreenAwake(){
+ if(!navigator.wakeLock){$('wake-status').textContent='Screen wake lock is unavailable in this browser.';return;}
+ if(!pageActive||document.visibilityState!=='visible'||wakeLock||wakePending)return;
+ wakePending=true;
+ try{
+  const lock=await navigator.wakeLock.request('screen');
+  if(!pageActive||document.visibilityState!=='visible'){await lock.release();return;}
+  wakeLock=lock;$('wake-status').textContent='Screen stays awake while this page is visible.';
+  lock.addEventListener('release',()=>{if(wakeLock===lock){wakeLock=null;$('wake-status').textContent='Screen wake lock paused. Tap to retry.';}});
+ }catch{$('wake-status').textContent='Screen wake lock unavailable. Tap to retry.';}
+ finally{wakePending=false;}
+}
+document.addEventListener('visibilitychange',keepScreenAwake);
+document.addEventListener('pointerdown',keepScreenAwake,{passive:true});
+window.addEventListener('pagehide',()=>{pageActive=false;wakeLock?.release().catch(()=>{});});
+window.addEventListener('pageshow',()=>{pageActive=true;keepScreenAwake();});
+keepScreenAwake();
 renderNotebook();requestAnimationFrame(frame);
