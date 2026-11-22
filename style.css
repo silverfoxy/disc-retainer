@@ -53,9 +53,18 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .model-caption { display: flex; justify-content: space-between; gap: 16px; padding: 12px 18px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
 .model-caption span:first-child { color: var(--amber); }
 .model > .help { margin: 10px 18px 12px; }
-.playback-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 18px; border-top: 1px solid var(--line); background: #f8f9fa; }
-.playback-controls button { min-height: 48px; }
-.playback-controls > span { flex: 1; min-width: 180px; font-size: 12px; color: var(--muted); }
+.workspace-controls { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px 18px; border-top: 1px solid var(--line); background: #f8f9fa; }
+.workspace-controls button { min-height: 48px; }
+.workspace-controls > span { flex: 1; font-size: 12px; color: var(--muted); }
+.pick-order { padding: 10px 18px; border-top: 1px solid var(--line); }
+.pick-order h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
+#pick-order { display: flex; flex-wrap: wrap; gap: 6px; max-height: 90px; overflow: auto; overscroll-behavior: contain; margin: 0; padding: 0; list-style: none; }
+#pick-order li { padding: 5px 8px; border: 1px solid #ffe69c; background: #fff9e6; border-radius: 5px; font-size: 12px; }
+#pick-order .false-step { border-color: #b6d4fe; background: #eaf2ff; }
+#picking-status { margin: 8px 0 0; font-size: 11px; color: var(--muted); }
+.model-details { border-top: 1px solid var(--line); }
+.model-details summary { cursor: pointer; padding: 8px 18px; font-size: 11px; color: var(--muted); }
+.model-details .help { margin: 10px 18px 12px; }
 
 /* Manual input */
 .touch-panel { padding: 18px; }
@@ -113,11 +122,23 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .false-gate-card strong { color: #084298; }
 
 @media (max-width: 900px) {
+ html { scroll-padding-top: calc(var(--workspace-height, 400px) + 20px); }
  main { grid-template-columns: minmax(0, 1fr); }
  header { order: 0; }
  .wake-status { order: 1; }
  .lock-panel { order: 2; }
- .model { order: 3; }
+ .model { order: 3; position: sticky; top: 8px; z-index: 5; box-shadow: 0 3px 12px #00000012; }
+ .model:has(.model-details[open]) { position: static; }
+ .model canvas { height: clamp(140px, 28svh, 280px); }
+ .workspace-controls { padding: 8px 10px; gap: 6px; }
+ .workspace-controls button { min-height: 48px; padding: 8px 10px; font-size: 12px; }
+ .workspace-controls #voice-summary { flex-basis: 100%; max-width: none; text-align: left; }
+ .pick-order { padding: 8px 10px; }
+ .pick-order h2 { margin-bottom: 6px; }
+ #pick-order { max-height: 56px; }
+ #pick-order li { font-size: 11px; }
+ #picking-status { max-height: 32px; overflow: auto; }
+ .model-details summary { padding: 8px 10px; }
  .voice-panel { order: 4; }
  .touch-panel { order: 5; }
 }
@@ -133,11 +154,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
  .lock-fields { grid-template-columns: 1fr; }
  .lock-actions button { flex: 1; }
  #lock-summary { max-width: 90px; font-size: 10px; }
- .model canvas { height: clamp(300px, 43svh, 420px); }
+
  .model-caption { padding: 10px 12px; gap: 10px; font-size: 10px; }
- .playback-controls { padding: 10px 12px; gap: 8px; }
- .playback-controls button { flex: 1; font-size: 12px; }
- .playback-controls > span { flex-basis: 100%; }
+ .workspace-controls button { flex: 1; }
  .touch-panel { padding: 14px; }
  .touch-panel .panel-head { margin-bottom: 6px; padding-bottom: 8px; }
  .touch-panel .panel-head h2 { font-size: 14px; }
@@ -154,14 +173,18 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
  .voice-panel { padding: 16px; }
  .voice-panel .panel-head { flex-wrap: wrap; }
  .voice-panel .panel-head h2 { flex: 1; }
- .voice-panel .panel-head #voice-summary { flex-basis: 100%; order: 3; text-align: left; max-width: none; }
  .voice-controls #mic-input { flex-basis: 100%; min-height: 48px; font-size: 16px; }
  .voice-entry input { font-size: 16px; min-height: 48px; }
- #voice-start { padding: 10px 12px; font-size: 14px; }
+ #voice-start { padding: 8px 10px; font-size: 12px; }
  #voice-summary { flex: 1; }
  .voice-entry { flex-direction: column; }
  .voice-entry input { width: 100%; }
  .gate-card { flex: 1; }
+}
+@media (max-width: 900px) and (max-height: 500px) {
+ .model { top: 4px; }
+ .model canvas { height: 120px; }
+ #pick-order { max-height: 32px; }
 }
 @media (prefers-reduced-motion: reduce) {
  button, .switch-track::before { transition: none; }

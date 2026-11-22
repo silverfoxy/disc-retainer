@@ -1,6 +1,6 @@
 import {LocalSpeech} from './local-speech.mjs';
 import {drawDiscScene,sidebarSeatInset} from './scene3d.mjs';
-import {parseGateCommand,gateHypothesesAt,gateAlignmentDegrees,withTensionedFirstDisc,gateCommandAlreadyApplied,falseGatesAt,createPickingSequence,pickingSequenceAt,gateEntryOrder,gateTableCsv} from './voice-commands.mjs';
+import {parseGateCommand,gateHypothesesAt,gateAlignmentDegrees,withTensionedFirstDisc,gateCommandAlreadyApplied,falseGatesAt,createPickingSequence,pickingSequenceAt,gateEntryOrder,gateTableCsv,gateTableRows} from './voice-commands.mjs';
 import {DEFAULT_CONFIG,validateConfig,emptyGeometry,validateSession,clamp,stateAt} from './model.mjs';
 const $=id=>document.getElementById(id),scene=$('scene'),storageKey='disc-studio-voice-v1';
 let session=validateSession({version:1,config:DEFAULT_CONFIG,events:[],duration:0});
@@ -94,6 +94,11 @@ function persist(){try{
 }catch{$('lock-status').textContent='Browser storage is unavailable or full. Export JSON to keep a copy.';return false;}}
 function renderNotebook(){
  syncTouchControls();refreshPlaybackControls();
+ $('pick-order').replaceChildren(...gateTableRows(session.events,session.config.discCount,session.config.sidebarAngleDeg).filter(row=>row.step!=='').map(row=>{
+  const item=document.createElement('li');item.dataset.disc=row.disc;item.className=row.falseGates?'false-step':'';
+  item.textContent=`${row.step}. Disc ${row.disc} · ${row.falseGates?`${row.falseGates} false`:row.trueGate}`;
+  item.title=row.action;return item;
+ }));
  const gates=gateHypothesesAt(session.events,Infinity,session.config.discCount),order=gateEntryOrder(session.events,session.config.discCount);$('gate-notebook').replaceChildren();
  gates.forEach((gate,i)=>{if(!gate)return;const card=document.createElement('div');card.className='gate-card';card.dataset.disc=i+1;
   const title=document.createElement('strong');title.textContent=`Disc ${i+1} · ${gate.from}–${gate.to} ${gate.units} · step ${order.indexOf(i)+1}`;
@@ -273,7 +278,7 @@ let playback=null,hasPlayed=false,completedCoreRotation=0;
 function refreshPlaybackControls(){
  const gates=gateHypothesesAt(session.events,Infinity,session.config.discCount),missing=gates.map((gate,i)=>(i>0||gate)&&(!gate||gate.degreesPerUnit===null)?i+1:null).filter(Boolean);
  $('picking-play').disabled=missing.length>0||Boolean(playback);$('picking-stop').disabled=!playback;
- $('picking-play').textContent=hasPlayed?'Replay picking sequence':'Play picking sequence';
+ $('picking-play').textContent=hasPlayed?'Replay sequence':'Play sequence';
  if(!playback){$('picking-status').textContent=missing.length?`Set true gates for disc${missing.length>1?'s':''} ${missing.join(', ')} to play.`:`Ready · ${gates[0]?'disc 1 adjustable':'disc 1 held at 0'} → ${gateEntryOrder(session.events,session.config.discCount).map(index=>`disc ${index+1}`).join(' → ')}`;$('picking-status').dataset.phase='ready';}
 }
 $('picking-play').addEventListener('click',()=>{
@@ -355,4 +360,8 @@ document.addEventListener('pointerdown',keepScreenAwake,{passive:true});
 window.addEventListener('pagehide',()=>{pageActive=false;wakeLock?.release().catch(()=>{});});
 window.addEventListener('pageshow',()=>{pageActive=true;keepScreenAwake();});
 keepScreenAwake();
+new ResizeObserver(()=>{
+ const model=document.querySelector('.model');
+ document.documentElement.style.setProperty('--workspace-height',`${model.querySelector('details').open?0:model.getBoundingClientRect().height}px`);
+}).observe(document.querySelector('.model'));
 renderNotebook();requestAnimationFrame(frame);

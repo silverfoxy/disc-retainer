@@ -11,7 +11,12 @@
 <p id="lock-status" class="help" role="status">Save a named notebook for each lock. Export a file to back it up or move devices.</p>
 </div>
 </section>
-<section class="panel model" aria-label="Disc model"><canvas id="scene" aria-label="3D disc stack; drag to orbit, scroll to zoom"></canvas><div class="playback-controls"><button id="picking-play" class="primary" disabled>Play picking sequence</button><button id="picking-stop" disabled>Stop animation</button><span id="picking-status" role="status">Set a true gate for discs 2 onward to play.</span></div><div class="model-caption"><span>Amber = suspected gate · cyan = turning tip</span><span>Drag to rotate · scroll to zoom</span></div><p id="tool-status" class="help"></p><p id="alignment-status" class="help" role="status"></p></section>
+<section class="panel model" aria-label="Disc model and picking workspace">
+<canvas id="scene" aria-label="3D disc stack; drag to orbit, scroll to zoom"></canvas>
+<div class="workspace-controls"><button id="voice-start" class="primary" aria-pressed="false">Start listening</button><button id="picking-play" disabled>Play sequence</button><button id="picking-stop" disabled>Stop</button><span id="voice-summary" role="status">Stopped</span></div>
+<div class="pick-order"><h2>Pick order</h2><ol id="pick-order" aria-label="Recorded picking order"></ol><p id="picking-status" role="status">Set a true gate for discs 2 onward to play.</p></div>
+<details class="model-details"><summary>Model details and legend</summary><div class="model-caption"><span>Amber = suspected gate · cyan = turning tip</span><span>Drag to rotate · scroll to zoom</span></div><p id="tool-status" class="help"></p><p id="alignment-status" class="help" role="status"></p></details>
+</section>
 <section class="panel touch-panel" aria-labelledby="touch-title">
 <div class="panel-head"><h2 id="touch-title">Manual input</h2><span>MARKS · 0–8 PER TURN</span><button id="touch-keyboard" class="panel-toggle" title="Focus manual keyboard controls">Keyboard</button><button id="touch-toggle" class="panel-toggle" aria-expanded="true" aria-controls="touch-content" aria-label="Minimize manual input">Minimize</button></div>
 <div id="touch-content">
@@ -24,7 +29,7 @@
 <p class="help touch-help">Keyboard: F / T selects false / true · Space moves fields · arrows adjust · Enter saves. Tab or type exact readings. Disc 1 is editable; end above 8 crosses zero.</p>
 </div>
 </section>
-<section class="panel voice-panel" aria-labelledby="voice-title"><div class="panel-head"><h2 id="voice-title">Voice notebook</h2><span id="voice-summary" role="status">Stopped</span><button id="voice-start" class="primary" aria-pressed="false">Start listening</button><button id="voice-toggle" class="panel-toggle" aria-expanded="true" aria-controls="voice-content" aria-label="Minimize voice notebook">Minimize</button></div>
+<section class="panel voice-panel" aria-labelledby="voice-title"><div class="panel-head"><h2 id="voice-title">Voice notebook</h2><button id="voice-toggle" class="panel-toggle" aria-expanded="true" aria-controls="voice-content" aria-label="Minimize voice notebook">Minimize</button></div>
 <div id="voice-content">
 <p>Say <strong>“disc 2, 2.5 marks until 3.5”</strong> to mark a suspected gate range, or <strong>“disc 2, false gate at 4”</strong>, or say <strong>“reset disc 2”</strong> or <strong>“reset all discs.”</strong></p>
 <div class="voice-controls"><label class="sr-only" for="mic-input">Microphone input</label><select id="mic-input" aria-label="Microphone input"><option value="">System default microphone</option></select><button id="voice-undo">Undo last entry</button></div>
