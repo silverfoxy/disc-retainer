@@ -49,6 +49,12 @@ try{
  for(let disc=9;disc<=30;disc++)await ev(`document.getElementById('voice-transcript').value='disc ${disc} gate at 2';document.getElementById('voice-apply').click()`);
  await new Promise(r=>setTimeout(r,400));
  if(!await ev(`(()=>{const list=document.getElementById('pick-order'),last=list.lastElementChild,r=last.getBoundingClientRect();return last.dataset.disc==='30'&&last.classList.contains('latest-step')&&list.scrollHeight<=list.clientHeight+1&&r.top>=0&&r.bottom<=innerHeight;})()`))throw Error('Long expanded order did not reveal its newest step');
+ const beforeReset=await ev('[...document.querySelectorAll("#pick-order li")].map(e=>e.textContent)');
+ await ev('document.getElementById("voice-transcript").value="Reset all the discs, please!";document.getElementById("voice-apply").click()');
+ if(!await ev('document.querySelectorAll(".gate-card").length===0&&document.querySelectorAll("#pick-order li").length===1&&document.getElementById("workspace-command-status").dataset.status==="success"&&document.getElementById("workspace-command-status").textContent.includes("Reset all discs")'))throw Error('Reset-all did not clear true and false observations');
+ await ev('document.getElementById("voice-undo").click()');
+ const restored=await ev('[...document.querySelectorAll("#pick-order li")].map(e=>e.textContent)');
+ if(JSON.stringify(restored)!==JSON.stringify(beforeReset))throw Error('Undo reset-all did not restore order and observations');
  if(errors.length)throw Error(JSON.stringify(errors));
  console.log('Passed expanded order, successful/failed/duplicate/edited true/false command feedback and shared model/listening/order visibility at 320x568, 390x844, 844x390; ordered false-gate steps; accessible manual fields; expandable details.');
 }finally{

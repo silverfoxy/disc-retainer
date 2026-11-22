@@ -53,7 +53,7 @@ Voice examples:
 - “disc four gate from two to two and a half”
 - “disc four false gate at three”
 - “disc one gate from five to five point five”
-- “reset disc four” / “reset all discs”
+- “reset disc four” / “reset all discs” (also “reset all the discs, please”)
 - “clear false gates disc four”
 
 Speak while the indicator says Listening; pause after a complete command and

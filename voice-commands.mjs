@@ -15,7 +15,7 @@ export function parseGateCommand(transcript,discCount){
   if(commands.every(command=>JSON.stringify(command)===JSON.stringify(commands[0])))return commands[0];
   throw Error('Say one disc and range at a time, then wait for Listening before the next command.');
  }
- if(text==='reset all disc')return {type:'gate_reset_all'};
+ if(/^reset all (?:the )?disc(?: please)?$/.test(text))return {type:'gate_reset_all'};
  const falseClear=text.match(/^clear false gates? (?:on |for )?disc (\d+)$/);
  const clear=text.match(/^(?:reset |clear (?:gate (?:on |for )?)?)disc (\d+)$/);
  const number='(-?\\d+(?:\\.\\d+)?)';

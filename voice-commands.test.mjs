@@ -70,8 +70,8 @@ test('mark units and spoken halves register and old click labels migrate',()=>{
 
 test('reset commands accept spoken numbers and Whisper spelling and reject invalid targets',()=>{
  for(const text of ['reset disc four','Reset disk 4.','reset disc twenty one'])assert.deepEqual(parseGateCommand(text,30),{type:'gate_clear',disc:text.includes('twenty')?21:4});
- for(const text of ['reset all discs','Reset all disks.'])assert.deepEqual(parseGateCommand(text,8),{type:'gate_reset_all'});
- for(const text of ['reset disc zero','reset disc nine','reset all discs and disc 2 gate at 3'])assert.throws(()=>parseGateCommand(text,8));
+ for(const text of ['reset all discs','Reset all disks.','Reset all the discs.','reset all discs please','Reset all the disks, please!'])assert.deepEqual(parseGateCommand(text,8),{type:'gate_reset_all'});
+ for(const text of ['reset disc zero','reset disc nine','reset all discs and disc 2 gate at 3','do not reset all discs','reset all discs please and add disc 2'])assert.throws(()=>parseGateCommand(text,8));
 });
 test('reset all survives serialization, clears hidden discs, and undo restores every range',()=>{
  const original=[hypothesis(1),{...hypothesis(2),disc:20}];
