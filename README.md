@@ -26,7 +26,11 @@ The same button becomes Stop listening; microphone choices refresh automatically
 On phones, a sticky workspace keeps the model, listening button, speech status,
 playback controls and recorded pick order together while input panels scroll below.
 False gates remain separate ordered steps. Longer model explanations expand under
-Model details; the order list scrolls independently when it grows.
+Model details. The order box expands to include every step. Applied commands
+highlight their true/false gate item in green; unmatched speech shows Not applied
+without changing observations. Repeated commands highlight the existing item and
+report Already recorded. When a long list outgrows the viewport, the workspace
+scrolls with the page so controls remain reachable.
 The model automatically fills its canvas, with a closer starting angle on phones.
 While visible, the page requests a screen wake lock and shows its status. It retries
 on return or a tap if the browser releases it; unsupported browsers and battery

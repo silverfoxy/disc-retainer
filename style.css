@@ -57,9 +57,14 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 .workspace-controls button { min-height: 48px; }
 .workspace-controls > span { flex: 1; font-size: 12px; color: var(--muted); }
 .pick-order { padding: 10px 18px; border-top: 1px solid var(--line); }
+.order-units { font-weight: 400; color: var(--muted); }
 .pick-order h2 { margin: 0 0 8px; font-size: 13px; font-weight: 600; }
-#pick-order { display: flex; flex-wrap: wrap; gap: 6px; max-height: 90px; overflow: auto; overscroll-behavior: contain; margin: 0; padding: 0; list-style: none; }
-#pick-order li { padding: 5px 8px; border: 1px solid #ffe69c; background: #fff9e6; border-radius: 5px; font-size: 12px; }
+#pick-order { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+#pick-order li { padding: 3px 6px; border: 1px solid #ffe69c; background: #fff9e6; border-radius: 5px; font-size: 12px; }
+#pick-order li.latest-step { background: #d1e7dd; border-color: #198754; box-shadow: inset 0 0 0 1px #198754; color: #0f5132; font-weight: 600; }
+#workspace-command-status { margin: 8px 0 0; padding: 8px 10px; border: 1px solid #badbcc; border-radius: 5px; font-size: 12px; line-height: 1.4; overflow-wrap: anywhere; }
+#workspace-command-status[data-status=success] { background: #d1e7dd; color: #0f5132; }
+#workspace-command-status[data-status=error] { background: #f8d7da; border-color: #f1aeb5; color: #842029; }
 #pick-order .false-step { border-color: #b6d4fe; background: #eaf2ff; }
 #picking-status { margin: 8px 0 0; font-size: 11px; color: var(--muted); }
 .model-details { border-top: 1px solid var(--line); }
@@ -128,14 +133,13 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
  .wake-status { order: 1; }
  .lock-panel { order: 2; }
  .model { order: 3; position: sticky; top: 8px; z-index: 5; box-shadow: 0 3px 12px #00000012; }
- .model:has(.model-details[open]) { position: static; }
- .model canvas { height: clamp(140px, 28svh, 280px); }
+ .model:has(.model-details[open]), .model.is-tall { position: static; }
+ .model canvas { height: clamp(110px, min(28svh, calc(100svh - var(--workspace-extra-height, 220px) - 100px)), 280px); }
  .workspace-controls { padding: 8px 10px; gap: 6px; }
  .workspace-controls button { min-height: 48px; padding: 8px 10px; font-size: 12px; }
  .workspace-controls #voice-summary { flex-basis: 100%; max-width: none; text-align: left; }
  .pick-order { padding: 8px 10px; }
  .pick-order h2 { margin-bottom: 6px; }
- #pick-order { max-height: 56px; }
  #pick-order li { font-size: 11px; }
  #picking-status { max-height: 32px; overflow: auto; }
  .model-details summary { padding: 8px 10px; }
@@ -184,7 +188,6 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 3px s
 @media (max-width: 900px) and (max-height: 500px) {
  .model { top: 4px; }
  .model canvas { height: 120px; }
- #pick-order { max-height: 32px; }
 }
 @media (prefers-reduced-motion: reduce) {
  button, .switch-track::before { transition: none; }

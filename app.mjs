@@ -85,18 +85,31 @@ $('lock-file').addEventListener('change',async()=>{
  finally{$('lock-file').value='';}
 });
 refreshLocks();
-function voiceStatus(text){$('voice-status').textContent=text;}
+function voiceStatus(text){$('voice-status').textContent=text;if(text.startsWith('Transcription failed:')||text.startsWith('No clear speech'))commandFeedback(text,'error');}
 function commandStatus(text){$('command-status').textContent=text;$('touch-status').textContent=text;}
+function commandFeedback(text,status,command=null){
+ const feedback=$('workspace-command-status');feedback.hidden=false;feedback.textContent=text;feedback.dataset.status=status;
+ for(const item of $('pick-order').children){item.classList.remove('latest-step');item.removeAttribute('aria-current');}
+ if(command&&['gate_hypothesis','false_gate_hypothesis'].includes(command.type)){
+  const reading=`${command.from===command.to?command.from:`${command.from}–${command.to}`} marks`;
+  const item=[...$('pick-order').children].find(item=>Number(item.dataset.disc)===command.disc&&item.dataset.kind===command.type&&(command.type!=='false_gate_hypothesis'||item.dataset.reading===reading));
+  if(item){item.classList.add('latest-step');item.setAttribute('aria-current','step');}
+ }
+ requestAnimationFrame(()=>{const target=$('pick-order').querySelector('.latest-step')||feedback;const rect=target.getBoundingClientRect();if(rect.bottom>innerHeight-16||rect.top<0)target.scrollIntoView({block:'center',behavior:'instant'});});
+}
+
 function persist(){try{
  localStorage.setItem(storageKey,JSON.stringify(session));
  if(activeLockId){const lock=locks.find(lock=>lock.id===activeLockId);if(lock){lock.session=JSON.parse(JSON.stringify(session));lock.updatedAt=new Date().toISOString();}}
  writeLibrary();return true;
 }catch{$('lock-status').textContent='Browser storage is unavailable or full. Export JSON to keep a copy.';return false;}}
 function renderNotebook(){
+ $('workspace-command-status').hidden=true;
  syncTouchControls();refreshPlaybackControls();
  $('pick-order').replaceChildren(...gateTableRows(session.events,session.config.discCount,session.config.sidebarAngleDeg).filter(row=>row.step!=='').map(row=>{
-  const item=document.createElement('li');item.dataset.disc=row.disc;item.className=row.falseGates?'false-step':'';
-  item.textContent=`${row.step}. Disc ${row.disc} · ${row.falseGates?`${row.falseGates} false`:row.trueGate}`;
+  const item=document.createElement('li');item.dataset.disc=row.disc;item.dataset.kind=row.falseGates?'false_gate_hypothesis':'gate_hypothesis';item.dataset.reading=row.falseGates||row.trueGate;item.className=row.falseGates?'false-step':'';
+  const reading=(row.falseGates||row.trueGate).replace(' marks','').replace(' (assumed)',' · held');
+  item.textContent=`${row.step}. Disc ${row.disc} · ${reading}${row.falseGates?' false':''}`;
   item.title=row.action;return item;
  }));
  const gates=gateHypothesesAt(session.events,Infinity,session.config.discCount),order=gateEntryOrder(session.events,session.config.discCount);$('gate-notebook').replaceChildren();
@@ -117,11 +130,11 @@ function renderNotebook(){
 function applyCommand(transcript){
  try{
   const command=parseGateCommand(transcript,session.config.discCount);
-  if(gateCommandAlreadyApplied(command,session.events)){if(command.disc>=1&&activeDisc!==command.disc-1){activeDisc=command.disc-1;sequence++;}syncTouchControls();commandStatus(command.type==='gate_reset_all'?'All discs are already reset · no duplicate added.':`Already recorded for disc ${command.disc} · no duplicate added.`);return;}
+  if(gateCommandAlreadyApplied(command,session.events)){if(command.disc>=1&&activeDisc!==command.disc-1){activeDisc=command.disc-1;sequence++;}syncTouchControls();commandStatus(command.type==='gate_reset_all'?'All discs are already reset · no duplicate added.':`Already recorded for disc ${command.disc} · no duplicate added.`);commandFeedback($('command-status').textContent,'success',command);return;}
   const event={...command,id:crypto.randomUUID(),time:Math.max(0,...session.events.map(e=>e.time))+.001,source:'manual',note:String(transcript).slice(0,500),units:'marks',degreesPerUnit:45};
   const checked=validateSession({...session,events:[...session.events,event]});session=checked;if(command.type==='gate_reset_all')activeDisc=1;if(command.disc>=1)activeDisc=command.disc-1;undoIds.push(event.id);sequence++;renderNotebook();
-  commandStatus(command.type==='gate_reset_all'?'Reset all discs. Disc 1 stays set at 0 marks by the tensioner.':command.type==='false_gate_clear'?`Cleared false gates for disc ${command.disc}.`:command.type==='gate_clear'?`Reset disc ${command.disc}.`:command.type==='false_gate_hypothesis'?`Disc ${command.disc}: false gate ${command.from}–${command.to} marks (small notch).`:`Disc ${command.disc}: suspected gate ${command.from}–${command.to} marks.`);persist();
- }catch(error){commandStatus(error.message);}
+  commandStatus(command.type==='gate_reset_all'?'Reset all discs. Disc 1 stays set at 0 marks by the tensioner.':command.type==='false_gate_clear'?`Cleared false gates for disc ${command.disc}.`:command.type==='gate_clear'?`Reset disc ${command.disc}.`:command.type==='false_gate_hypothesis'?`Disc ${command.disc}: false gate ${command.from}–${command.to} marks (small notch).`:`Disc ${command.disc}: suspected gate ${command.from}–${command.to} marks.`);commandFeedback(`Applied · ${$('command-status').textContent}`,'success',command);persist();
+ }catch(error){commandStatus(error.message);commandFeedback(`Not applied · “${String(transcript).slice(0,80)}” did not map to a valid command.`,'error');}
 }
 // Touch edits are a draft until Save, so a range remains one undoable observation.
 function syncTouchControls(){
@@ -256,7 +269,7 @@ $('voice-transcript').addEventListener('keydown',event=>{if(event.key==='Enter')
 $('voice-undo').addEventListener('click',()=>{
  let id;while(undoIds.length){const candidate=undoIds.pop();if(session.events.some(e=>e.id===candidate)){id=candidate;break;}}
  id??=session.events.at(-1)?.id;if(!id){voiceStatus('No entries to undo.');return;}
- session.events=session.events.filter(e=>e.id!==id);sequence++;renderNotebook();commandStatus('Last entry removed.');persist();
+ session.events=session.events.filter(e=>e.id!==id);sequence++;renderNotebook();commandStatus('Last entry removed.');commandFeedback('Undone · Last entry removed.','success');persist();
 });
 $('disc-count').addEventListener('change',()=>{
  const count=Number($('disc-count').value);
@@ -360,8 +373,13 @@ document.addEventListener('pointerdown',keepScreenAwake,{passive:true});
 window.addEventListener('pagehide',()=>{pageActive=false;wakeLock?.release().catch(()=>{});});
 window.addEventListener('pageshow',()=>{pageActive=true;keepScreenAwake();});
 keepScreenAwake();
-new ResizeObserver(()=>{
- const model=document.querySelector('.model');
- document.documentElement.style.setProperty('--workspace-height',`${model.querySelector('details').open?0:model.getBoundingClientRect().height}px`);
-}).observe(document.querySelector('.model'));
+function sizeWorkspace(){
+ const model=document.querySelector('.model'),height=model.getBoundingClientRect().height;
+ const extra=Math.ceil(height-scene.getBoundingClientRect().height);
+ if(model.style.getPropertyValue('--workspace-extra-height')!==`${extra}px`)model.style.setProperty('--workspace-extra-height',`${extra}px`);
+ model.classList.toggle('is-tall',height>innerHeight-90);
+ document.documentElement.style.setProperty('--workspace-height',`${model.querySelector('details').open||height>innerHeight-90?0:height}px`);
+}
+new ResizeObserver(sizeWorkspace).observe(document.querySelector('.model'));
+window.addEventListener('resize',sizeWorkspace);
 renderNotebook();requestAnimationFrame(frame);
