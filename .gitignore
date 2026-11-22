@@ -1,0 +1,32 @@
+# Dependencies, local configuration and generated output
+node_modules/
+.wrangler/
+.public/
+.cache/
+.venv*/
+__pycache__/
+*.pyc
+.env
+.env.*
+.dev.vars
+.dev.vars.*
+*.log
+.DS_Store
+
+# Retired camera/tracking experiments kept locally, outside the published app
+experiments/
+camera.*
+diagnostics*
+calibration*
+tracker*
+send-observations.mjs
+scripts/setup-gopro.sh
+browser-camera-check.mjs
+browser-cotracker-check.mjs
+browser-depth-check.mjs
+browser-diagnostics-check.mjs
+browser-geometry-check.mjs
+browser-protocol-check.mjs
+browser-tracking-report-check.mjs
+browser-native-voice-check.mjs
+pencil-*.svg

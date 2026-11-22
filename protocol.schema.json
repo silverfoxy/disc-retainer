@@ -1,0 +1,197 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:disc-studio:observation:1",
+  "title": "Disc Studio camera observation protocol v1",
+  "description": "Transport-independent observation contract, implemented by the local relay and viewer. Unknown measurements must be null; contact is a separate viewer assumption.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "type",
+    "session_id",
+    "sequence",
+    "capture_time_us",
+    "calibration_id",
+    "tracking",
+    "depth_mm",
+    "angle_deg",
+    "confidence"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "type": {
+      "const": "pick_observation"
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "sequence": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991
+    },
+    "capture_time_us": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Capture time in microseconds from this session's monotonic origin; never network arrival time.",
+      "maximum": 86400000000
+    },
+    "calibration_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 100
+    },
+    "tracking": {
+      "enum": [
+        "tracked",
+        "partial",
+        "lost"
+      ]
+    },
+    "depth_mm": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Tip depth along the calibrated lock axis; positive inward, zero at the configured lock-face origin."
+    },
+    "angle_deg": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Tip-shaft rotation relative to calibrated zero, unwrapped within a continuous tracking epoch. No winding count is inferred through occlusion. Positive clockwise viewed into the keyway from the operator side."
+    },
+    "tension_angle_deg": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "description": "Optional independently tracked tension component rotation under the same convention."
+    },
+    "confidence": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Tracker quality score, not probability of correct disc state."
+    },
+    "depth_std_mm": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "angle_std_deg": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "reprojection_error_px": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "minimum": 0
+    },
+    "visible_marker_ids": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "uniqueItems": true,
+      "maxItems": 100
+    },
+    "rotation_epoch": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 9007199254740991,
+      "description": "Continuous angular segment identifier; changes when unwrapped turn count is no longer observable."
+    },
+    "timestamp_source": {
+      "enum": [
+        "camera_capture",
+        "media_presentation",
+        "processing_monotonic"
+      ],
+      "description": "Clock evidence; media presentation time is not claimed to be sensor capture time."
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "tracking": {
+            "const": "tracked"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "depth_mm": {
+            "type": "number"
+          },
+          "angle_deg": {
+            "type": "number"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tracking": {
+            "const": "lost"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "depth_mm": {
+            "type": "null"
+          },
+          "angle_deg": {
+            "type": "null"
+          },
+          "confidence": {
+            "const": 0
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "tracking": {
+            "const": "partial"
+          }
+        }
+      },
+      "then": {
+        "anyOf": [
+          {
+            "properties": {
+              "depth_mm": {
+                "type": "number"
+              }
+            }
+          },
+          {
+            "properties": {
+              "angle_deg": {
+                "type": "number"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}
