@@ -1,5 +1,8 @@
 const MODEL='@cf/openai/whisper-large-v3-turbo';
 const MAX_AUDIO_BYTES=512044;
+// Whisper uses example transcript text as a vocabulary/spelling hint, not a grammar.
+// Keep this fixed and independent of prior transcripts or saved lock observations.
+export const SPEECH_CONTEXT='Disc detainer lock picking. Disc, gate, false gate, marks, tensioner, sidebar. Disc two gate from two to two and a half. Disc four gate from 2.5 to 3.5 marks. Disc three false gate at four. Reset disc two. Reset all discs. Reset all the discs, please. Clear disc two. Clear false gates disc three.';
 const json=(value,status=200,extra={})=>Response.json(value,{status,headers:{'Cache-Control':'no-store','X-Content-Type-Options':'nosniff',...extra}});
 const reject=(message,status)=>{throw json({error:message},status);};
 
@@ -59,7 +62,7 @@ export default {
     reservation=await budget.fetch('https://budget/reserve',{method:'POST',body:JSON.stringify({seconds:audio.seconds})});
    }catch{reject('Speech budget protection is unavailable. Use manual input.',503);}
    if(!reservation.ok)return reservation;
-   const result=await env.AI.run(MODEL,{audio:base64(bytes),language:'en',task:'transcribe',vad_filter:true,condition_on_previous_text:false});
+   const result=await env.AI.run(MODEL,{audio:base64(bytes),language:'en',task:'transcribe',initial_prompt:SPEECH_CONTEXT,vad_filter:true,condition_on_previous_text:false});
    if(typeof result.text!=='string')reject('Speech recognition returned no transcript. Please retry.',502);
    return json({text:result.text.trim().slice(0,500),engine:'cloudflare-whisper'});
   }catch(error){

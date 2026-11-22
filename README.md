@@ -95,6 +95,11 @@ Only the explicit browser asset list in `scripts/build.mjs` is served publicly.
 The hosted website records short microphone utterances in the browser and sends
 them over HTTPS to Workers AI (`@cf/openai/whisper-large-v3-turbo`). The app does
 not store audio or transcripts on the server; notebooks remain in browser storage.
+Each hosted inference includes a fixed `initial_prompt` with lock-picking vocabulary
+and examples of gate ranges, false gates, reset-all, reset-disc and clear commands.
+This hints transcription spelling and phrasing; it does not constrain Whisper to
+valid commands or replace the strict command parser. Prior transcripts and saved
+notebook contents are not included in the prompt.
 The speech endpoint validates mono 16 kHz PCM16 WAV audio, caps recordings at
 16 seconds, checks browser origin and a session cookie/token, and limits requests
 per IP and per Cloudflare location. These are abuse controls for a public demo,

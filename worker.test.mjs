@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import worker,{SpeechBudget,SPEECH_CAPS} from './worker.mjs';
+import worker,{SpeechBudget,SPEECH_CAPS,SPEECH_CONTEXT} from './worker.mjs';
 import {encodeWav} from './local-speech.mjs';
 const origin='https://disc-retainer.example';
 const voice=()=>encodeWav([Float32Array.from({length:16000},(_,i)=>Math.sin(i/10)*.05)]);
@@ -21,6 +21,7 @@ test('hosted transcription sends bounded mono WAV audio to Whisper and returns a
  const {calls,post}=await fixture(),audio=voice(),response=await post(audio);
  assert.equal(response.status,200);assert.equal((await response.json()).text,'disc four gate from two to two and a half');assert.equal(calls.length,1);
  assert.equal(calls[0].model,'@cf/openai/whisper-large-v3-turbo');assert.equal(calls[0].input.language,'en');assert.equal(calls[0].input.vad_filter,true);
+ assert.equal(calls[0].input.initial_prompt,SPEECH_CONTEXT);assert.match(SPEECH_CONTEXT,/false gate/);assert.match(SPEECH_CONTEXT,/Reset all discs/);assert.equal(calls[0].input.condition_on_previous_text,false);
  assert.deepEqual(Buffer.from(calls[0].input.audio,'base64'),Buffer.from(audio));
 });
 test('cross-site, missing-session, malformed, wrong-format and oversized audio requests never invoke AI',async()=>{
