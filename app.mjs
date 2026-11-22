@@ -225,6 +225,7 @@ async function refreshInputs(activeStream=null){
   let selected=$('mic-input').value||saved;
   const [browserResult,nativeResult]=await Promise.allSettled([navigator.mediaDevices.enumerateDevices(),fetch('/api/speech/inputs').then(response=>response.json())]);
   const devices=browserResult.status==='fulfilled'?browserResult.value:[],nativeInputs=nativeResult.status==='fulfilled'?(nativeResult.value.inputs??[]):[];
+  if(nativeResult.status==='fulfilled'&&nativeResult.value.engine==='cloudflare-whisper')$('speech-notice').textContent='Voice commands are transcribed by Cloudflare Workers AI. Audio is sent only while listening and is not saved by this app. Your lock notebooks stay in this browser. Speak when Listening appears, pause after a command, and wait while Transcribing. You can also use manual input.';
   if(revision!==inputRefresh)return;
   const inputs=devices.filter(device=>device.kind==='audioinput'&&device.deviceId);
   // Query while capture is active. Keep previously authorized entries if the
@@ -291,8 +292,8 @@ $('mic-check').addEventListener('click',async()=>{
    $('mic-status').textContent=`Testing ${name}: input level ${Math.min(100,Math.round(rms*500))}% · speak now (${Math.ceil((50-i)/10)}s).`;
    await new Promise(resolve=>setTimeout(resolve,100));
   }
-  $('mic-status').textContent=peak>.008?`Audio detected from ${name}. Microphone capture works. Start listening uses the local recognizer.`:`Microphone opened: ${name}, but little or no audio was detected. Check mute/gain and choose the intended input in your browser or system sound settings.`;
- }catch(error){$('mic-status').textContent=error.name==='NotFoundError'?'The browser cannot find an audio input. Select a direct local input above instead.':`Microphone check failed (${error.name}): ${error.message}`;}
+  $('mic-status').textContent=peak>.008?`Audio detected from ${name}. Microphone capture works. Start listening enables speech recognition.`:`Microphone opened: ${name}, but little or no audio was detected. Check mute/gain and choose the intended input in your browser or system sound settings.`;
+ }catch(error){$('mic-status').textContent=error.name==='NotFoundError'?'The browser cannot find a microphone. Check site permissions and connect an audio input.':`Microphone check failed (${error.name}): ${error.message}`;}
  finally{micStream?.getTracks().forEach(track=>track.stop());micStream=null;await context?.close();$('mic-check').disabled=false;$('voice-start').disabled=false;}
 });
 window.addEventListener('pagehide',()=>micStream?.getTracks().forEach(track=>track.stop()));

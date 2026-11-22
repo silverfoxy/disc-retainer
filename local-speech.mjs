@@ -6,13 +6,13 @@ export function encodeWav(chunks){
  return bytes;
 }
 export class LocalSpeech{
- constructor({onStatus,onTranscript,onEnd,onLevel=()=>{},onState=()=>{}}){Object.assign(this,{onStatus,onTranscript,onEnd,onLevel,onState});this.phase='stopped';this.noiseHistory=[];this.running=false;this.generation=0;this.pending=0;}
+ constructor({onStatus,onTranscript,onEnd,onLevel=()=>{},onState=()=>{}}){Object.assign(this,{onStatus,onTranscript,onEnd,onLevel,onState});this.phase='stopped';this.recognitionLocation='locally';this.noiseHistory=[];this.running=false;this.generation=0;this.pending=0;}
  reportStatus(text){this.lastStatus=text;this.onStatus(text);}
  setState(phase){if(this.phase===phase)return;this.phase=phase;this.onState(phase);}
  async start(deviceId=''){
-  const generation=++this.generation;this.running=true;this.setState('preparing');this.reportStatus('Preparing local speech recognition…');
+  const generation=++this.generation;this.running=true;this.setState('preparing');this.reportStatus('Preparing speech recognition…');
   try{
-   const connection=await fetch('/api/speech/session');if(!connection.ok)throw Error('Local speech server unavailable.');this.token=(await connection.json()).token;
+   const connection=await fetch('/api/speech/session');if(!connection.ok)throw Error('Speech service unavailable.');const session=await connection.json();this.token=session.token;this.recognitionLocation=session.engine==='cloudflare-whisper'?'with Cloudflare':'locally';
    if(deviceId.startsWith('native:')){await this.startNative(deviceId.slice(7),generation);return;}
    await this.call('/api/speech/ready',null);
    if(generation!==this.generation)return;
@@ -23,8 +23,8 @@ export class LocalSpeech{
    const source=this.context.createMediaStreamSource(stream),capture=new AudioWorkletNode(this.context,'speech-capture',{channelCount:1,channelCountMode:'explicit',outputChannelCount:[1]}),mute=this.context.createGain();mute.gain.value=0;source.connect(capture).connect(mute).connect(this.context.destination);
    this.preRoll=[];this.utterance=null;this.silence=0;this.voiced=0;this.samples=0;this.noiseHistory=[];this.deviceName=stream.getAudioTracks()[0].label;
    capture.port.onmessage=event=>{if(generation===this.generation)this.accept(event.data,generation);};
-   this.setState('listening');this.reportStatus(`Listening locally · ${this.deviceName||'microphone'}. Say a complete command, then pause.`);
-  }catch(error){if(generation!==this.generation)return;this.stop();this.reportStatus(`Local speech unavailable (${error.name}): ${error.message}`);}
+   this.setState('listening');this.reportStatus(`Listening ${this.recognitionLocation} · ${this.deviceName||'microphone'}. Say a complete command, then pause.`);
+  }catch(error){if(generation!==this.generation)return;this.stop();this.reportStatus(`Speech unavailable (${error.name}): ${error.message}`);}
  }
  async startNative(source,generation){
   const result=await nativeRequest(this.token,'/api/speech/native/start',{source});
@@ -59,17 +59,17 @@ export class LocalSpeech{
   if(this.silence<11200&&this.samples<224000)return;
   const audio=this.utterance,voiced=this.voiced;this.utterance=null;this.preRoll=[];this.silence=0;
   if(voiced<3200){this.setState('listening');return;}
-  this.pending++;this.setState('transcribing');this.reportStatus('Transcribing locally. Please wait; microphone capture is paused.');const prior=this.tail??Promise.resolve();
+  this.pending++;this.setState('transcribing');this.reportStatus(`Transcribing ${this.recognitionLocation}. Please wait; microphone capture is paused.`);const prior=this.tail??Promise.resolve();
   this.tail=prior.catch(()=>{}).then(async()=>{
    if(generation!==this.generation)return;
    const response=await this.call('/api/speech/transcribe',encodeWav(audio));
    if(generation!==this.generation)return;
    if(response.text)this.onTranscript(response.text);else this.reportStatus('No clear speech recognized. Speak a complete command and pause.');
-  }).catch(error=>{if(generation===this.generation)this.reportStatus(`Local transcription failed: ${error.message}`);}).finally(()=>{this.pending--;if(generation===this.generation&&!this.pending){this.setState('listening');if(this.lastStatus?.startsWith('Transcribing'))this.reportStatus('Listening locally. Ready for the next command.');}});
+  }).catch(error=>{if(generation===this.generation)this.reportStatus(`Transcription failed: ${error.message}`);}).finally(()=>{this.pending--;if(generation===this.generation&&!this.pending){this.setState('listening');if(this.lastStatus?.startsWith('Transcribing'))this.reportStatus(`Listening ${this.recognitionLocation}. Ready for the next command.`);}});
  }
  async call(path,audio){
   const response=await fetch(path,{method:'POST',headers:{Authorization:`Bearer ${this.token}`,'Content-Type':audio?'audio/wav':'application/json'},body:audio??'{}'});
-  const result=await response.json();if(!response.ok)throw Error(result.error||'Local recognition request failed.');return result;
+  const result=await response.json();if(!response.ok)throw Error(result.error||'Speech recognition request failed.');return result;
  }
  stop(){clearInterval(this.nativeTimer);if(this.nativeSession){nativeRequest(this.token,'/api/speech/native/stop',{session:this.nativeSession},true).catch(()=>{});this.nativeSession=null;}this.running=false;this.setState('stopped');this.generation++;this.stream?.getTracks().forEach(track=>track.stop());this.stream=null;this.context?.close().catch(()=>{});this.context=null;this.onEnd();}
 }

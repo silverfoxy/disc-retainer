@@ -1,0 +1,19 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "disc-retainer",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-01-01",
+  "workers_dev": true,
+  "preview_urls": false,
+  "assets": {
+    "directory": ".public",
+    "binding": "ASSETS",
+    "run_worker_first": ["/api/*"]
+  },
+  "ai": { "binding": "AI" },
+  "ratelimits": [
+    { "name": "SPEECH_LIMITER", "namespace_id": "7713201", "simple": { "limit": 12, "period": 60 } },
+    { "name": "GLOBAL_SPEECH_LIMITER", "namespace_id": "7713202", "simple": { "limit": 60, "period": 60 } }
+  ],
+  "observability": { "enabled": false }
+}

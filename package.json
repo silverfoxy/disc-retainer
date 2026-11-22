@@ -1,0 +1,16 @@
+{
+  "name": "disc-retainer",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Visualize and save gate locations for disc detainer locks.",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test model.test.mjs protocol.test.mjs scene3d.test.mjs voice-commands.test.mjs local-speech.test.mjs worker.test.mjs",
+    "build": "node scripts/build.mjs",
+    "dev": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "devDependencies": { "wrangler": "4.166.0" }
+}
