@@ -65,11 +65,11 @@ export class LocalSpeech{
    const response=await this.call('/api/speech/transcribe',encodeWav(audio));
    if(generation!==this.generation)return;
    if(response.text)this.onTranscript(response.text);else this.reportStatus('No clear speech recognized. Speak a complete command and pause.');
-  }).catch(error=>{if(generation===this.generation)this.reportStatus(`Transcription failed: ${error.message}`);}).finally(()=>{this.pending--;if(generation===this.generation&&!this.pending){this.setState('listening');if(this.lastStatus?.startsWith('Transcribing'))this.reportStatus(`Listening ${this.recognitionLocation}. Ready for the next command.`);}});
+  }).catch(error=>{if(generation===this.generation){if(error.status===429||error.status===503)this.stop();this.reportStatus(`Transcription failed: ${error.message}`);}}).finally(()=>{this.pending--;if(generation===this.generation&&!this.pending){this.setState('listening');if(this.lastStatus?.startsWith('Transcribing'))this.reportStatus(`Listening ${this.recognitionLocation}. Ready for the next command.`);}});
  }
  async call(path,audio){
   const response=await fetch(path,{method:'POST',headers:{Authorization:`Bearer ${this.token}`,'Content-Type':audio?'audio/wav':'application/json'},body:audio??'{}'});
-  const result=await response.json();if(!response.ok)throw Error(result.error||'Speech recognition request failed.');return result;
+  const result=await response.json();if(!response.ok){const error=Error(result.error||'Speech recognition request failed.');error.status=response.status;throw error;}return result;
  }
  stop(){clearInterval(this.nativeTimer);if(this.nativeSession){nativeRequest(this.token,'/api/speech/native/stop',{session:this.nativeSession},true).catch(()=>{});this.nativeSession=null;}this.running=false;this.setState('stopped');this.generation++;this.stream?.getTracks().forEach(track=>track.stop());this.stream=null;this.context?.close().catch(()=>{});this.context=null;this.onEnd();}
 }

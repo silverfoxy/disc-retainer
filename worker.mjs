@@ -15,7 +15,7 @@ export function validateWav(bytes){
  if(label(0,4)!=='RIFF'||label(8,4)!=='WAVE'||label(12,4)!=='fmt '||view.getUint32(16,true)!==16||view.getUint16(20,true)!==1||view.getUint16(22,true)!==1||view.getUint32(24,true)!==16000||view.getUint32(28,true)!==32000||view.getUint16(32,true)!==2||view.getUint16(34,true)!==16||label(36,4)!=='data'||view.getUint32(40,true)!==bytes.length-44||view.getUint32(4,true)!==bytes.length-8)throw Error('Expected mono 16 kHz PCM16 WAV audio.');
  const frames=(bytes.length-44)/2;if(!Number.isInteger(frames)||frames<1600||frames>256000)throw Error('Audio must be 0.1–16 seconds long.');
  let sum=0,peak=0;for(let i=44;i<bytes.length;i+=2){const sample=view.getInt16(i,true)/32768;sum+=sample*sample;peak=Math.max(peak,Math.abs(sample));}
- return {silent:Math.sqrt(sum/frames)<.0002&&peak<.001};
+ return {silent:Math.sqrt(sum/frames)<.0002&&peak<.001,seconds:Math.ceil(frames/16000)};
 }
 function base64(bytes){let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));return btoa(binary);}
 function authorize(request){
@@ -41,6 +41,7 @@ export default {
    if(!['/api/speech/ready','/api/speech/transcribe'].includes(path))reject('Not found.',404);
    if(request.method!=='POST')reject('Expected POST.',405);
    authorize(request);
+   if(env.SPEECH_ENABLED!=='true')reject('Hosted speech is temporarily disabled. Use manual input.',503);
    if(!env.AI)reject('Speech recognition is not configured.',503);
    if(path==='/api/speech/ready')return json({ready:true,engine:'cloudflare-whisper',model:MODEL});
    if(request.headers.get('Content-Type')?.split(';')[0]!=='audio/wav')reject('Expected audio/wav.',415);
@@ -51,6 +52,13 @@ export default {
    if(!env.SPEECH_LIMITER||!env.GLOBAL_SPEECH_LIMITER)reject('Speech rate limits are not configured.',503);
    const [{success:userAllowed},{success:globalAllowed}]=await Promise.all([env.SPEECH_LIMITER.limit({key:ip}),env.GLOBAL_SPEECH_LIMITER.limit({key:'disc-retainer'})]);
    if(!userAllowed||!globalAllowed)return json({error:'Too many speech requests. Wait a minute, then try again.'},429,{'Retry-After':'60'});
+   if(!env.SPEECH_BUDGET)reject('Speech budget protection is unavailable. Use manual input.',503);
+   let reservation;
+   try{
+    const budget=env.SPEECH_BUDGET.get(env.SPEECH_BUDGET.idFromName('global'));
+    reservation=await budget.fetch('https://budget/reserve',{method:'POST',body:JSON.stringify({seconds:audio.seconds})});
+   }catch{reject('Speech budget protection is unavailable. Use manual input.',503);}
+   if(!reservation.ok)return reservation;
    const result=await env.AI.run(MODEL,{audio:base64(bytes),language:'en',task:'transcribe',vad_filter:true,condition_on_previous_text:false});
    if(typeof result.text!=='string')reject('Speech recognition returned no transcript. Please retry.',502);
    return json({text:result.text.trim().slice(0,500),engine:'cloudflare-whisper'});
@@ -62,3 +70,29 @@ export default {
   }
  }
 };
+
+// A single persistent object serializes reservations from every Cloudflare location.
+// Reserve before inference, and never refund failures: retries must also fit the budget.
+export const SPEECH_CAPS=Object.freeze({dailySeconds:1800,monthlySeconds:18000,dailyRequests:300,monthlyRequests:3000});
+export class SpeechBudget{
+ constructor(ctx){this.storage=ctx.storage;}
+ async fetch(request){
+  const {seconds}=await request.json();
+  if(request.method!=='POST'||!Number.isInteger(seconds)||seconds<1||seconds>16)return json({error:'Invalid speech reservation.'},400);
+  const now=new Date(),day=now.toISOString().slice(0,10),month=day.slice(0,7);
+  const nextDay=Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()+1),nextMonth=Date.UTC(now.getUTCFullYear(),now.getUTCMonth()+1,1);
+  const decision=await this.storage.transaction(async txn=>{
+   const saved=await txn.get('usage');
+   const usage={day,month,dailySeconds:0,dailyRequests:0,monthlySeconds:0,monthlyRequests:0,...saved};
+   if(usage.day!==day)Object.assign(usage,{day,dailySeconds:0,dailyRequests:0});
+   if(usage.month!==month)Object.assign(usage,{month,monthlySeconds:0,monthlyRequests:0});
+   const monthly=usage.monthlySeconds+seconds>SPEECH_CAPS.monthlySeconds||usage.monthlyRequests>=SPEECH_CAPS.monthlyRequests;
+   const daily=usage.dailySeconds+seconds>SPEECH_CAPS.dailySeconds||usage.dailyRequests>=SPEECH_CAPS.dailyRequests;
+   if(monthly||daily)return {allowed:false,period:monthly?'monthly':'daily',reset:monthly?nextMonth:nextDay};
+   usage.dailySeconds+=seconds;usage.monthlySeconds+=seconds;usage.dailyRequests++;usage.monthlyRequests++;
+   await txn.put('usage',usage);return {allowed:true};
+  });
+  if(!decision.allowed)return json({error:`Shared ${decision.period} speech allowance used up. Use manual input until ${new Date(decision.reset).toISOString()}.`},429,{'Retry-After':String(Math.max(1,Math.ceil((decision.reset-Date.now())/1000)))});
+  return json({allowed:true});
+ }
+}

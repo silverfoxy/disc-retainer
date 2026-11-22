@@ -87,7 +87,21 @@ The speech endpoint validates mono 16 kHz PCM16 WAV audio, caps recordings at
 16 seconds, checks browser origin and a session cookie/token, and limits requests
 per IP and per Cloudflare location. These are abuse controls for a public demo,
 not user authentication. Workers AI usage counts against your account allowance;
-Cloudflare's rate limits are approximate and not a global spending cap.
+A single SQLite-backed Durable Object also enforces a persistent, global allowance:
+30 minutes / 300 requests per UTC day and 5 hours / 3,000 requests per UTC calendar
+month, whichever is reached first. Reservations round each utterance up to a whole
+second and happen atomically before inference; failed inferences are not refunded.
+Missing/unavailable budget protection fails closed, and the microphone stops on
+quota or service errors. Manual input remains available. Redeployments preserve
+usage; do not rename/delete the budget object or its namespace to reset counters.
+
+At the published Whisper price of $0.000513/audio minute, the monthly audio cap
+represents about $0.154 of model usage before free allowances. This is an audio
+usage cap for this app, not an account-wide dollar cap: Worker requests, Durable
+Objects, other apps and future price changes are separate. See Cloudflare's
+[model pricing](https://developers.cloudflare.com/workers-ai/models/whisper-large-v3-turbo/).
+Set `SPEECH_ENABLED` to `"false"` in `wrangler.jsonc` and redeploy for an immediate
+server-side speech kill switch. The default is enabled.
 
 For local Workers development, use `npm run dev`. Microphone capture on a phone
 requires HTTPS; use the deployed `workers.dev` URL for device testing. Microphone

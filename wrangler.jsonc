@@ -10,6 +10,9 @@
     "binding": "ASSETS",
     "run_worker_first": ["/api/*"]
   },
+  "vars": { "SPEECH_ENABLED": "true" },
+  "durable_objects": { "bindings": [{ "name": "SPEECH_BUDGET", "class_name": "SpeechBudget" }] },
+  "migrations": [{ "tag": "v1-speech-budget", "new_sqlite_classes": ["SpeechBudget"] }],
   "ai": { "binding": "AI" },
   "ratelimits": [
     { "name": "SPEECH_LIMITER", "namespace_id": "7713201", "simple": { "limit": 12, "period": 60 } },

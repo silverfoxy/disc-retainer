@@ -47,3 +47,9 @@ test('listening phases are explicit and capture pauses while a phrase is transcr
  resolve({text:'disc four gate from two to two and a half'});await speech.tail;
  assert.deepEqual(phases,['listening','hearing','transcribing','listening']);assert.equal(transcripts.length,1);assert.equal(speech.utterance,null);assert.ok(statuses.at(-1).startsWith('Listening'));
 });
+test('quota errors stop microphone capture and retain the allowance explanation',async()=>{
+ const {speech,statuses}=fixture();speech.running=true;let stopped=false;speech.stream={getTracks:()=>[{stop(){stopped=true;}}]};
+ speech.call=async()=>{throw Object.assign(Error('Shared daily speech allowance used up.'),{status:429});};
+ frames(speech,20,.05);frames(speech,12,0);await speech.tail;
+ assert.equal(stopped,true);assert.equal(speech.running,false);assert.equal(speech.phase,'stopped');assert.match(statuses.at(-1),/allowance used up/);
+});
