@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Disc Retainer: Visualize and save gate locations.</title><link rel="stylesheet" href="style.css"><script type="module" src="app.mjs"></script></head>
+<body><main>
+<header><div><p class="eyebrow">DISC RETAINER</p><h1>Visualize and save gate locations.</h1></div><label for="disc-count">Discs <input id="disc-count" type="number" min="2" max="30" step="1" value="8"></label></header>
+<section class="panel lock-panel" aria-labelledby="lock-title">
+<div class="panel-head"><h2 id="lock-title">Lock notebooks</h2><span id="lock-summary">Unsaved lock</span><button id="lock-toggle" class="panel-toggle" aria-expanded="false" aria-controls="lock-content" aria-label="Expand lock notebooks">Expand</button></div>
+<div id="lock-content" hidden>
+<div class="lock-fields"><label for="lock-name">Lock name<input id="lock-name" maxlength="150" placeholder="e.g. Kryptonite practice lock"></label><label for="lock-list">Saved locks<select id="lock-list"><option value="">Choose a saved lock</option></select></label></div>
+<div class="lock-actions"><button id="lock-save" class="primary">Save lock</button><button id="lock-load">Open selected</button><button id="lock-new">New lock</button><button id="lock-export">Export JSON</button><button id="lock-export-table">Export gate table</button><button id="lock-import">Import JSON</button><input id="lock-file" type="file" accept=".json,application/json" hidden></div>
+<p id="lock-status" class="help" role="status">Save a named notebook for each lock. Export a file to back it up or move devices.</p>
+</div>
+</section>
+<section class="panel model" aria-label="Disc model"><canvas id="scene" aria-label="3D disc stack; drag to orbit, scroll to zoom"></canvas><div class="playback-controls"><button id="picking-play" class="primary" disabled>Play picking sequence</button><button id="picking-stop" disabled>Stop animation</button><span id="picking-status" role="status">Set a true gate for discs 2 onward to play.</span></div><div class="model-caption"><span>Amber = suspected gate · cyan = turning tip</span><span>Drag to rotate · scroll to zoom</span></div><p id="tool-status" class="help"></p><p id="alignment-status" class="help" role="status"></p></section>
+<section class="panel touch-panel" aria-labelledby="touch-title">
+<div class="panel-head"><h2 id="touch-title">Manual input</h2><span>MARKS · 0–8 PER TURN</span><button id="touch-keyboard" class="panel-toggle" title="Focus manual keyboard controls">Keyboard</button><button id="touch-toggle" class="panel-toggle" aria-expanded="true" aria-controls="touch-content" aria-label="Minimize manual input">Minimize</button></div>
+<div id="touch-content">
+<label class="touch-kind" for="touch-kind"><span><span id="touch-kind-name">True gate</span> <small id="touch-kind-hint">Gate range</small></span><input id="touch-kind" aria-keyshortcuts="F T" type="checkbox" role="switch"><span class="switch-track" aria-hidden="true"></span></label>
+<div class="touch-row"><span id="touch-disc-label">Disc</span><button id="touch-disc-prev" aria-label="Previous disc">−</button><select id="touch-disc" aria-keyshortcuts="Space ArrowLeft ArrowRight" aria-labelledby="touch-disc-label"></select><button id="touch-disc-next" aria-label="Next disc">+</button></div>
+<div class="touch-row"><label for="touch-start">Start</label><button id="touch-start-minus" aria-label="Decrease gate start by half a mark">−½</button><input id="touch-start" type="number" inputmode="decimal" min="0" max="16" step="0.5" value="0"><button id="touch-start-plus" aria-label="Increase gate start by half a mark">+½</button></div>
+<div class="touch-row"><label for="touch-end">End</label><button id="touch-end-minus" aria-label="Decrease gate end by half a mark">−½</button><input id="touch-end" type="number" inputmode="decimal" min="0" max="16" step="0.5" value="0"><button id="touch-end-plus" aria-label="Increase gate end by half a mark">+½</button></div>
+<div class="touch-actions"><button id="touch-reset"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 8c2-5 10-6 14 0s0 13-7 12c-4 0-7-2-8-6M4 3l.3 6 6-.5"/></svg><span>Reset disc</span></button><button id="touch-undo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5 3 10l6 4M4 10c14-4 19 1 14 9"/></svg><span>Undo</span></button><button id="touch-save" class="primary"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4.5 5L20 6M5 15l4 4L21 8"/></svg><span>Save gate</span></button></div>
+<p id="touch-status" role="status" aria-live="polite">Choose a disc, set its range, then Save gate.</p>
+<p class="help touch-help">Keyboard: F / T selects false / true · Space moves fields · arrows adjust · Enter saves. Tab or type exact readings. Disc 1 is editable; end above 8 crosses zero.</p>
+</div>
+</section>
+<section class="panel voice-panel" aria-labelledby="voice-title"><div class="panel-head"><h2 id="voice-title">Voice notebook</h2><span id="voice-summary" role="status">Stopped</span><button id="voice-toggle" class="panel-toggle" aria-expanded="true" aria-controls="voice-content" aria-label="Minimize voice notebook">Minimize</button></div>
+<div id="voice-content">
+<p>Say <strong>“disc 2, 2.5 marks until 3.5”</strong> to mark a suspected gate range, or <strong>“disc 2, false gate at 4”</strong>, or say <strong>“reset disc 2”</strong> or <strong>“reset all discs.”</strong></p>
+<div class="voice-controls"><button id="voice-start" class="primary">Start listening</button><button id="voice-stop" disabled>Stop listening</button><button id="mic-check">Check microphone</button><button id="mic-refresh">Refresh microphones</button><label class="sr-only" for="mic-input">Microphone input</label><select id="mic-input" aria-label="Microphone input"><option value="">System default microphone</option></select><button id="voice-undo">Undo last entry</button></div>
+<p id="mic-devices-status" class="help" role="status"></p>
+<p id="mic-status" class="help" role="status"></p>
+<div class="mic-level"><meter id="mic-level" min="0" max="100" value="0" aria-label="Microphone input level"></meter><span id="mic-level-text">Microphone stopped</span></div>
+<div id="voice-phase" class="voice-phase" data-phase="stopped" role="status" aria-live="polite">Stopped</div>
+<p id="voice-status" role="status" aria-live="polite">Not listening.</p>
+<label class="sr-only" for="voice-transcript">Transcript or typed command</label><div class="voice-entry"><input id="voice-transcript" maxlength="500" placeholder="disc 2, gate from 2.5 to 3.5"><button id="voice-apply">Apply</button></div>
+<p id="command-status" role="status" aria-live="polite"></p>
+<div id="gate-notebook" aria-label="Suspected gate ranges"></div>
+<p class="help">1 mark = 45°, relative to your zero reference. Gate notches, protruding drive/stop tabs, and the transparent housing are schematic. A spoken range rotates the disc to bring its midpoint to the sidebar; the amber arc keeps the range visible. Disc 1 defaults to the tensioned stop at 0 marks; enter its gate to counter-rotate it with the tensioner. The bar drops when every true gate, including any edited disc-1 gate, is aligned. Tool geometry and motion are schematic. Entries save automatically in this browser.</p>
+<p class="help">Voice recognition runs locally on this computer. A “direct local input” captures the selected microphone through the local app when you click Start listening or Check microphone. Speak when the indicator says Listening. Pause after a complete command, and wait while it says Transcribing. Microphone audio is not saved or sent to an online speech service. You can also type a command above.</p>
+</div>
+</section>
+</main></body></html>
