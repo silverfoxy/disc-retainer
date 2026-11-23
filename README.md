@@ -1,5 +1,11 @@
 # Disc Retainer
 
+Hosted app: <https://discretainer.imsilverfoxy.com>.
+
+The original <https://disc-retainer.babak9326.workers.dev> address remains available.
+Saved notebooks belong to each browser origin; export JSON from the old address
+and import it on the custom domain to move your observations.
+
 Visualize and save gate locations for disc detainer locks.
 
 An interactive 3D notebook with true and false gates, ordered picking replay,

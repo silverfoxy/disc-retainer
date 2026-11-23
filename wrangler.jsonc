@@ -4,6 +4,7 @@
   "main": "worker.mjs",
   "compatibility_date": "2026-01-01",
   "workers_dev": true,
+  "routes": [{ "pattern": "discretainer.imsilverfoxy.com", "custom_domain": true }],
   "preview_urls": false,
   "assets": {
     "directory": ".public",
