@@ -30,13 +30,13 @@ jobs:
       - name: Check published port, host protection and assets
         run: |
           docker run -d --name disc-web --init -e DISC_RETAINER_ALLOWED_HOSTS=127.0.0.1:18770 -p 127.0.0.1:18770:8770 disc-retainer:web
-          curl --retry 15 --retry-delay 1 --retry-connrefused --fail http://127.0.0.1:18770/ | grep 'Disc Retainer'
-          curl --fail http://127.0.0.1:18770/api/speech/session | grep 'local-whisper'
+          curl --retry 15 --retry-delay 1 --retry-all-errors --fail http://127.0.0.1:18770/ | grep 'Disc Retainer'
+          curl --fail http://127.0.0.1:18770/api/speech/session | grep -o '"engine":"local-whisper"'
           test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: other.example' http://127.0.0.1:18770/)" = 403
           test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18770/server.mjs)" = 404
           docker stop disc-web
           docker run -d --name disc-speech --init -e DISC_RETAINER_ALLOWED_HOSTS=127.0.0.1:18770 -p 127.0.0.1:18770:8770 disc-retainer:speech
-          curl --retry 15 --retry-delay 1 --retry-connrefused --fail http://127.0.0.1:18770/ | grep 'Disc Retainer'
+          curl --retry 15 --retry-delay 1 --retry-all-errors --fail http://127.0.0.1:18770/ | grep 'Disc Retainer'
       - name: Container logs
         if: always()
         run: |
