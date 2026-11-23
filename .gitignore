@@ -30,3 +30,6 @@ browser-protocol-check.mjs
 browser-tracking-report-check.mjs
 browser-native-voice-check.mjs
 pencil-*.svg
+
+# Personal deployment settings copied from wrangler.example.jsonc
+wrangler.local.jsonc
