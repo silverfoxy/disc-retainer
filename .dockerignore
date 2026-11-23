@@ -1,0 +1,17 @@
+# Only runtime sources enter the build context; no datasets, models or secrets.
+**
+!Dockerfile
+!index.html
+!style.css
+!app.mjs
+!scene3d.mjs
+!model.mjs
+!protocol.mjs
+!voice-commands.mjs
+!local-speech.mjs
+!speech-capture.mjs
+!server.mjs
+!speech-relay.mjs
+!native-microphone.mjs
+!speech_worker.py
+!requirements-speech.lock.txt

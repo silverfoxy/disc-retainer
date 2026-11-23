@@ -15,3 +15,31 @@ jobs:
       - run: npm test
       - run: npm run build
       - run: npx wrangler deploy --dry-run
+  docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose config --quiet
+      - name: Build manual and local-speech images
+        run: |
+          docker build --target web -t disc-retainer:web .
+          docker build --target speech -t disc-retainer:speech .
+      - name: Check local speech dependencies
+        run: docker run --rm disc-retainer:speech /opt/venv/bin/python -c "import faster_whisper, numpy, onnxruntime; print('Speech dependencies imported')"
+      - name: Check published port, host protection and assets
+        run: |
+          docker run -d --name disc-web --init -e DISC_RETAINER_ALLOWED_HOSTS=127.0.0.1:18770 -p 127.0.0.1:18770:8770 disc-retainer:web
+          curl --retry 15 --retry-delay 1 --retry-connrefused --fail http://127.0.0.1:18770/ | grep 'Disc Retainer'
+          curl --fail http://127.0.0.1:18770/api/speech/session | grep 'local-whisper'
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Host: other.example' http://127.0.0.1:18770/)" = 403
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:18770/server.mjs)" = 404
+          docker stop disc-web
+          docker run -d --name disc-speech --init -e DISC_RETAINER_ALLOWED_HOSTS=127.0.0.1:18770 -p 127.0.0.1:18770:8770 disc-retainer:speech
+          curl --retry 15 --retry-delay 1 --retry-connrefused --fail http://127.0.0.1:18770/ | grep 'Disc Retainer'
+      - name: Container logs
+        if: always()
+        run: |
+          docker logs disc-web || true
+          docker logs disc-speech || true
+          docker rm -f disc-web disc-speech || true

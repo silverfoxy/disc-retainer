@@ -1,0 +1,15 @@
+services:
+  disc-retainer:
+    build:
+      context: .
+      target: speech
+    image: disc-retainer:local
+    init: true
+    ports:
+      - "127.0.0.1:8770:8770"
+    volumes:
+      - speech-models:/models
+    restart: unless-stopped
+
+volumes:
+  speech-models:
