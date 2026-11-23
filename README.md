@@ -4,6 +4,8 @@
 
 Use it at **[discretainer.imsilverfoxy.com](https://discretainer.imsilverfoxy.com)**.
 
+![Animated 3D model showing the pick rotating discs, the sidebar entering the gates, and the core turning](docs/disc-model.gif)
+
 ## Features
 
 - Interactive 3D discs, gates, sidebar and picking tool. Drag to rotate; scroll to zoom.
